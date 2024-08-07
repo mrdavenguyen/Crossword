@@ -33,14 +33,17 @@ class Grid:
         """
         self.rows = grid_size
         self.cols = grid_size
-        self._grid = [[Cell() for _ in range(self.cols)]for _ in range(self.rows)]
-        self.words = {
-            "across": {},
-            "down": {}
-        }
-        self.populate_grid()
-        self.assign_numbering()
-        self.remove_extra_cells()
+        while True:
+            self._grid = [[Cell() for _ in range(self.cols)]for _ in range(self.rows)]
+            self.words = {
+                "across": {},
+                "down": {}
+            }
+            self.populate_grid()
+            self.assign_numbering()
+            self.remove_extra_cells()
+            if self.lines_connected():
+                break
 
     @property
     def grid(self):
@@ -72,9 +75,31 @@ class Grid:
         self.populate_rows()
         self.populate_columns()
 
+    def lines_connected(self):
+        self.visited = [[False for _ in range(self.cols)] for _ in range(self.rows)]
+        self.check_line_connections()
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self._grid[row][col].letter == None and not self.visited[row][col]:
+                    return False
+        return True
+
+    def check_line_connections(self, coords=(0,0)):
+        directions = ((-1, 0), (1, 0), (0, -1), (0, 1))
+        current_x = coords[0]
+        current_y = coords[1]
+        self.visited[current_y][current_x] = True
+        for x, y in directions:
+            next_coord = (current_x + x, current_y + y)
+            next_x, next_y = next_coord
+            if 0 <= next_x < self.cols and 0 <= next_y < self.rows and self.visited[next_y][next_x] == False and self._grid[next_y][next_x].letter == None:
+                self.check_line_connections(next_coord)
+
+
+
     def remove_extra_cells(self):
         """
-        Changes any cells that aren't in rows or columns into black squares
+        Changes any cells that aren't in rows or columns into black squares.
         """
         for row in range(self.rows):
             for col in range(self.cols):
@@ -202,7 +227,7 @@ class Grid:
             end_of_row = len(self._grid[0]) - 1
             end_of_col = len(self._grid) - 1
             self._grid[division][col].letter = '#'
-            # Mirror inverted in the bottom rows
+            # Mirror inverted in the right columns
             self._grid[end_of_col - division][end_of_row - col].letter = '#'
 
     def choose_word_lengths(self, first_space, last_space):
@@ -213,8 +238,12 @@ class Grid:
         # Calculate the maximum number of words that can fit in this space
         max_words = ((space_length - 3) // 4) + 1
         # Pick a random number of words to divide this space into
-        valid_lengths = list(range(1, max_words + 1))
-        num_words = random.choices(valid_lengths)[0]
+        if max_words == 4:
+            num_words = random.choices([1, 2], weights=[5, 100])[0]
+        elif max_words == 3:
+            num_words = random.randint(1, 2)
+        else:
+            num_words = 1
         remaining_space = space_length
         word_lengths = []
         # If more than one word, divide the space up into smaller words and black divisions
