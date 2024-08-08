@@ -77,14 +77,21 @@ class Grid:
 
     def lines_connected(self):
         self.visited = [[False for _ in range(self.cols)] for _ in range(self.rows)]
-        self.check_line_connections()
+        coords = self.get_first_space()
+        self.check_line_connections(coords)
         for row in range(self.rows):
             for col in range(self.cols):
                 if self._grid[row][col].letter == None and not self.visited[row][col]:
                     return False
         return True
+    
+    def get_first_space(self):
+        for row in range(self.rows):
+            for col in range(self.cols):   
+                if self._grid[row][col].letter == None:
+                    return (col, row)
 
-    def check_line_connections(self, coords=(0,0)):
+    def check_line_connections(self, coords):
         directions = ((-1, 0), (1, 0), (0, -1), (0, 1))
         current_x = coords[0]
         current_y = coords[1]
@@ -94,7 +101,6 @@ class Grid:
             next_x, next_y = next_coord
             if 0 <= next_x < self.cols and 0 <= next_y < self.rows and self.visited[next_y][next_x] == False and self._grid[next_y][next_x].letter == None:
                 self.check_line_connections(next_coord)
-
 
 
     def remove_extra_cells(self):
@@ -254,7 +260,11 @@ class Grid:
                     word_length = remaining_space
                 else:
                     remaining_words = num_words - (i + 1)
-                    word_length = random.randint(3, remaining_space - (remaining_words * (3 + 1)))
+                    shortest_word = 3
+                    longest_word = remaining_space - (remaining_words * (3 + 1))
+                    word_len_range = list(range(shortest_word, longest_word + 1))
+                    word_len_weights = [5 if word_len == 3 or (remaining_space - word_len == (3 + 1)) else 100 for word_len in word_len_range]
+                    word_length = random.choices(word_len_range, weights=word_len_weights)[0]
                     # Deduct word length and a single space from remaining space
                     remaining_space -= word_length + 1
                 # Save the word lengths to a list
