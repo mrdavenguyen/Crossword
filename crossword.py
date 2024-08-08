@@ -1,4 +1,6 @@
 import random
+from get_word_lists import create_wordlists
+import time
 
 class Cell:
     def __init__(self):
@@ -33,17 +35,29 @@ class Grid:
         """
         self.rows = grid_size
         self.cols = grid_size
+
+        self.wordlists = create_wordlists()
+
         while True:
-            self._grid = [[Cell() for _ in range(self.cols)]for _ in range(self.rows)]
-            self.words = {
-                "across": {},
-                "down": {}
+            while True:
+                self._grid = [[Cell() for _ in range(self.cols)]for _ in range(self.rows)]
+                self.words = {
+                    "across": {},
+                    "down": {}
+                }
+                self.populate_grid()
+                self.assign_numbering()
+                self.remove_extra_cells()
+                if self.lines_connected():
+                    self.display_grid()
+                    break
+            iterable_keys = {
+                "across": list(self.words["across"].keys()),
+                "down": list(self.words["down"].keys())
             }
-            self.populate_grid()
-            self.assign_numbering()
-            self.remove_extra_cells()
-            if self.lines_connected():
+            if self.populated_with_words(iterable_keys):
                 break
+
 
     @property
     def grid(self):
@@ -58,15 +72,89 @@ class Grid:
         """
         for y in range(self.rows):
             for x in range(self.cols):
-                if self._grid[y][x].letter == None:
+                if self._grid[y][x].letter != "#":
                     value = self._grid[y][x].numbering
-                    formatted_value = f"{value:02d}" if value is not None else "  "
+                    letter = self._grid[y][x].letter
+                    formatted_value = f"{value:02d}" if value is not None else f" {letter}" if letter is not None else "  "
                     print(f"\033[31;107m{formatted_value}", end="")
                     print("\033[0m", end="")
                 else:
                     print(f"\033[31;40m  ", end="")
                     print("\033[0m", end="")     
             print()
+
+    def populated_with_words(self, iterable_keys, alt_index=0, across_index=0, down_index=0):
+        """
+        REMEMBER TO POP USED WORDS IN A WAY THAT DOESN'T SCREW WITH THE ITERATION THROUGH WORDS.
+        MAYBE PASS A COPY OF WORDLIST TO THE RECURSIVE FUNCTION WITH THE CURRENT WORD REMOVED?
+        """
+
+        if across_index == len(iterable_keys["across"]) and down_index == len(iterable_keys["down"]):
+            return True
+
+        if across_index < len(iterable_keys["across"]) and (down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0):
+            direction = "across"
+            word_num = iterable_keys["across"][across_index]
+            across_index += 1
+        else:
+            direction = "down"
+            word_num = iterable_keys["down"][down_index]
+            down_index += 1
+
+        word_length = self.words[direction][word_num].length
+        start_y, start_x = self.words[direction][word_num].start_pos
+        current_word = []
+
+        for i in range(word_length):
+            if direction == "across":
+                current_word.append(self._grid[start_y][start_x + i].letter)
+            else:
+                current_word.append(self._grid[start_y + i][start_x].letter)
+
+        for word in self.wordlists[word_length]:
+            valid = True
+            for i in range(word_length):
+                if current_word[i] and word[i] != current_word[i]:
+                    valid = False
+            if valid:
+                print()
+                self.display_grid()
+                for i in range(word_length):
+                    if direction == "across":
+                        self._grid[start_y][start_x + i].letter = word[i]
+                    else:
+                        self._grid[start_y + i][start_x].letter = word[i]
+                self.words[direction][word_num].word = word
+                self.words[direction][word_num].populated = True
+
+                if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
+                    return True
+
+                # Backtrack and erase the word
+                self.words[direction][word_num].word = None
+                self.words[direction][word_num].populated = False
+                for i in range(word_length):
+                    if direction == "across":
+                        if down_num := self._grid[start_y][start_x + i].num_down:
+                            if not self.words["down"][down_num].populated:
+                                self._grid[start_y][start_x + i].letter = None
+                        else:
+                            self._grid[start_y][start_x + i].letter = None
+                    else:
+                        if across_num := self._grid[start_y + i][start_x].num_across:
+                            if not self.words["across"][across_num].populated:
+                                self._grid[start_y + i][start_x].letter = None
+                        else:
+                            self._grid[start_y + i][start_x].letter = None
+        return False
+
+    def iterate_word_index(self, iterable_keys, direction, key_index):
+        if key_index < len(iterable_keys[direction]) - 1:
+            key_index += 1
+        else:
+            direction = "down"
+            key_index = 0
+        return direction, key_index
     
     def populate_grid(self):
         """
@@ -336,6 +424,7 @@ class Grid:
 
 def main():
     grid = Grid()
+    print()
     grid.display_grid()
 
 if __name__ == "__main__":
