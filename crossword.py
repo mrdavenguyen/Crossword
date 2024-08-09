@@ -75,7 +75,8 @@ class Grid:
                 if self._grid[y][x].letter != "#":
                     value = self._grid[y][x].numbering
                     letter = self._grid[y][x].letter
-                    formatted_value = f"{value:02d}" if value is not None else f" {letter}" if letter is not None else "  "
+                    # f"{value:02d}" if value is not None else 
+                    formatted_value = f" {letter}" if letter is not None else "  "
                     print(f"\033[31;107m{formatted_value}", end="")
                     print("\033[0m", end="")
                 else:
@@ -117,13 +118,13 @@ class Grid:
                 if current_word[i] and word[i] != current_word[i]:
                     valid = False
             if valid:
-                print()
-                self.display_grid()
                 for i in range(word_length):
                     if direction == "across":
                         self._grid[start_y][start_x + i].letter = word[i]
                     else:
                         self._grid[start_y + i][start_x].letter = word[i]
+                print()
+                self.display_grid()
                 self.words[direction][word_num].word = word
                 self.words[direction][word_num].populated = True
 
@@ -333,7 +334,7 @@ class Grid:
         max_words = ((space_length - 3) // 4) + 1
         # Pick a random number of words to divide this space into
         if max_words == 4:
-            num_words = random.choices([1, 2], weights=[5, 100])[0]
+            num_words = random.choices([1, 2], weights=[0, 100])[0]
         elif max_words == 3:
             num_words = random.randint(1, 2)
         else:
