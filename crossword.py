@@ -89,10 +89,10 @@ class Grid:
         REMEMBER TO POP USED WORDS IN A WAY THAT DOESN'T SCREW WITH THE ITERATION THROUGH WORDS.
         MAYBE PASS A COPY OF WORDLIST TO THE RECURSIVE FUNCTION WITH THE CURRENT WORD REMOVED?
         """
-
+        # Stop populating with words if all across and down indexes have been iterated through
         if across_index == len(iterable_keys["across"]) and down_index == len(iterable_keys["down"]):
             return True
-
+        
         if across_index < len(iterable_keys["across"]) and (down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0):
             direction = "across"
             word_num = iterable_keys["across"][across_index]
@@ -123,13 +123,26 @@ class Grid:
                         self._grid[start_y][start_x + i].letter = word[i]
                     else:
                         self._grid[start_y + i][start_x].letter = word[i]
-                print()
-                self.display_grid()
                 self.words[direction][word_num].word = word
                 self.words[direction][word_num].populated = True
-
-                if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
-                    return True
+                # Go through each cell in the word, and if it's an intersection, and the intersecting word isn't already populated
+                # check whether a valid word can be made in the perpendicular line if it intersects with a letter in the current word.
+                for i in range(word_length):
+                    if direction == "across":
+                        if down_num := self._grid[start_y][start_x + i].num_down:
+                            if not self.words["down"][down_num].populated:
+                                if not self.perpendicular_word_valid("down", down_num):
+                                    valid = False
+                    else:
+                        if across_num := self._grid[start_y + i][start_x].num_across:
+                            if not self.words["across"][across_num].populated:
+                                if not self.perpendicular_word_valid("across", across_num):
+                                    valid = False
+                if valid:
+                    print()
+                    self.display_grid()
+                    if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
+                        return True
 
                 # Backtrack and erase the word
                 self.words[direction][word_num].word = None
@@ -148,6 +161,27 @@ class Grid:
                         else:
                             self._grid[start_y + i][start_x].letter = None
         return False
+    
+    def perpendicular_word_valid(self, direction, word_num):
+        word_length = self.words[direction][word_num].length
+        start_y, start_x = self.words[direction][word_num].start_pos
+        current_word = []
+
+        for i in range(word_length):
+            if direction == "across":
+                current_word.append(self._grid[start_y][start_x + i].letter)
+            else:
+                current_word.append(self._grid[start_y + i][start_x].letter)
+
+        for word in self.wordlists[word_length]:
+            valid = True
+            for i in range(word_length):
+                if current_word[i] and word[i] != current_word[i]:
+                    valid = False
+            if valid:
+                return True
+        return False
+
 
     def iterate_word_index(self, iterable_keys, direction, key_index):
         if key_index < len(iterable_keys[direction]) - 1:
@@ -334,7 +368,7 @@ class Grid:
         max_words = ((space_length - 3) // 4) + 1
         # Pick a random number of words to divide this space into
         if max_words == 4:
-            num_words = random.choices([1, 2], weights=[0, 100])[0]
+            num_words = random.choices([1, 2], weights=[5, 100])[0]
         elif max_words == 3:
             num_words = random.randint(1, 2)
         else:
