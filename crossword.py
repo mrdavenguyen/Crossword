@@ -1,5 +1,5 @@
-import time #currently not being used here
 from grid import Grid
+"""Main entry point of the app"""
 
 def main():
     grid = Grid()
