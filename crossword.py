@@ -4,6 +4,9 @@ import time
 
 class Cell:
     def __init__(self):
+
+
+        
         self.letter = None # None for blank, "#" for black square, or a letter
         self.numbering = None # None or the number of the clue
         self.num_across = None # Reference to the across word number
