@@ -2,6 +2,8 @@ import random
 from get_word_lists import create_wordlists
 import time
 
+# test
+
 class Cell:
     def __init__(self):
         self.letter = None # None for blank, "#" for black square, or a letter
