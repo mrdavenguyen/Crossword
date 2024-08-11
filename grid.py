@@ -5,18 +5,18 @@ from wordlist import WordList
 
 
 class Grid:
-    def __init__(self, grid_size=15):
+    def __init__(self, grid_size = 15):
         """
         Initialises the grid with the given size.
         """
         self.rows = grid_size
         self.cols = grid_size
 
-        self.wordlists = self.load_wordlists()
+        self.wordlists = self.load_word_lists()
 
         while True:
             while True:
-                self._grid = [[Cell() for _ in range(self.cols)]for _ in range(self.rows)]
+                self._grid = [[Cell() for _ in range(self.cols)] for _ in range(self.rows)]
                 self.words = {
                     "across": {},
                     "down": {}
@@ -34,7 +34,7 @@ class Grid:
             if self.populated_with_words(iterable_keys):
                 break
 
-    def load_wordlists(self):
+    def load_word_lists(self):
         word_list = WordList()
         return word_list.create_word_lists()
 
@@ -57,14 +57,14 @@ class Grid:
                     letter = self._grid[y][x].letter
                     # f"{value:02d}" if value is not None else 
                     formatted_value = f" {letter}" if letter is not None else "  "
-                    print(f"\033[31;107m{formatted_value}", end="")
-                    print("\033[0m", end="")
+                    print(f"\033[31;107m{formatted_value}", end = "")
+                    print("\033[0m", end = "")
                 else:
-                    print(f"\033[31;40m  ", end="")
-                    print("\033[0m", end="")     
+                    print(f"\033[31;40m  ", end = "")
+                    print("\033[0m", end = "")     
             print()
 
-    def populated_with_words(self, iterable_keys, alt_index=0, across_index=0, down_index=0):
+    def populated_with_words(self, iterable_keys, alt_index = 0, across_index = 0, down_index = 0):
         """
         REMEMBER TO POP USED WORDS IN A WAY THAT DOESN'T SCREW WITH THE ITERATION THROUGH WORDS.
         MAYBE PASS A COPY OF WORDLIST TO THE RECURSIVE FUNCTION WITH THE CURRENT WORD REMOVED?
