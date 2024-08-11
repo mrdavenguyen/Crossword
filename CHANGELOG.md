@@ -11,16 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Some improvement ...
-- Updated (example: update ui for crossword grid)
-- Refactored (example: refactored display_grid function for ...)
+- Updated ...
+- Refactored ...
 
 ### Fixed
-- Fixed a bug where the application would crash on startup. (sample only)
+- Fixed a bug where ...
 
 ### Deprecated
-- Deprecated imports (sample)
+- Deprecated imports ...
 
 ### Deleted
-- Deleted function for counting index (sample)
+- Deleted unused function 
 
 
