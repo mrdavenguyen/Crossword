@@ -348,7 +348,7 @@ class Grid:
         max_words = ((space_length - 3) // 4) + 1
         # Pick a random number of words to divide this space into
         if max_words == 4:
-            num_words = random.choices([1, 2], weights=[5, 100])[0]
+            num_words = random.choices([1, 2], weights = [5, 100])[0]
         elif max_words == 3:
             num_words = random.randint(1, 2)
         else:
@@ -367,7 +367,7 @@ class Grid:
                     longest_word = remaining_space - (remaining_words * (3 + 1))
                     word_len_range = list(range(shortest_word, longest_word + 1))
                     word_len_weights = [5 if word_len == 3 or (remaining_space - word_len == (3 + 1)) else 100 for word_len in word_len_range]
-                    word_length = random.choices(word_len_range, weights=word_len_weights)[0]
+                    word_length = random.choices(word_len_range, weights = word_len_weights)[0]
                     # Deduct word length and a single space from remaining space
                     remaining_space -= word_length + 1
                 # Save the word lengths to a list
