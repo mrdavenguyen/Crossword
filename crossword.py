@@ -3,7 +3,7 @@ from grid import Grid
 
 def main():
     grid = Grid()
-    print()
+    print("Initialize Crossword")
     grid.display_grid()
 
 if __name__ == "__main__":
