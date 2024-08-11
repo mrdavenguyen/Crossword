@@ -1,11 +1,8 @@
 import random
 
-# def main():
-#     word_lists = create_word_lists()
+class WordList:
 
-class GetWordList:
-
-    def __init__(self, filename="words_alpha.txt"):
+    def __init__(self, filename = "words_alpha.txt"):
         """
         Initializes the WordListManager with the path to the word list file.
         """

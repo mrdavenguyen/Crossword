@@ -1,7 +1,8 @@
 import random
 from cell import Cell
-from get_word_lists import GetWordList
 from word import Word
+from wordlist import WordList
+
 
 class Grid:
     def __init__(self, grid_size=15):
@@ -34,7 +35,7 @@ class Grid:
                 break
 
     def load_wordlists(self):
-        word_list = GetWordList()
+        word_list = WordList()
         return word_list.create_word_lists()
 
 
