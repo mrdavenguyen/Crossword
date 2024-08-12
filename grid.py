@@ -1,7 +1,7 @@
 import random
 from cell import Cell
 from word import Word
-from wordlist import WordList
+from word_list import WordList
 
 
 class Grid:
