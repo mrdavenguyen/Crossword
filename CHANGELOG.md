@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added crossword grid
-- Insert words into crossword grid
+- Inserted words into crossword grid
 
 ### Changed
 - Some improvement ...
