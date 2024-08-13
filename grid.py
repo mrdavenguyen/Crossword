@@ -143,25 +143,38 @@ class Grid:
         return False
     
     def perpendicular_word_valid(self, direction, word_num):
+        """
+        Checks if a valid word can be made in a perpendicular line specified by the direction and word_num parameters.
+        """
         word_length = self.words[direction][word_num].length
         start_y, start_x = self.words[direction][word_num].start_pos
-        current_word = []
-
+        current_letters = self.collect_current_letters(word_length, start_y, start_x, direction)
+        return self.valid_word(word_length, current_letters)
+    
+    def collect_current_letters(self, word_length, start_y, start_x, direction):
+        """
+        Provides a list of letters in the current line.
+        """
+        current_letters = []
         for i in range(word_length):
             if direction == "across":
-                current_word.append(self._grid[start_y][start_x + i].letter)
+                current_letters.append(self._grid[start_y][start_x + i].letter)
             else:
-                current_word.append(self._grid[start_y + i][start_x].letter)
+                current_letters.append(self._grid[start_y + i][start_x].letter)
+        return current_letters
 
+    def valid_word(self, word_length, current_letters):
+        """
+        Checks if a valid word can be made given the current letters in a line.
+        """
         for word in self.wordlists[word_length]:
             valid = True
             for i in range(word_length):
-                if current_word[i] and word[i] != current_word[i]:
+                if current_letters[i] and word[i] != current_letters[i]:
                     valid = False
             if valid:
                 return True
         return False
-
 
     def iterate_word_index(self, iterable_keys, direction, key_index):
         if key_index < len(iterable_keys[direction]) - 1:
