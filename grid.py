@@ -1,11 +1,12 @@
 import random
+import pygame
 from cell import Cell
 from word import Word
 from word_list import WordList
 
 
 class Grid:
-    def __init__(self, grid_size = 15):
+    def __init__(self, grid_size=15):
         """
         Initialises the grid with the given size.
         """
@@ -14,13 +15,14 @@ class Grid:
 
         self.wordlists = self.load_word_lists()
 
+        self.cell_grid = pygame.sprite.Group()
+
         while True:
             while True:
-                self._grid = [[Cell() for _ in range(self.cols)] for _ in range(self.rows)]
-                self.words = {
-                    "across": {},
-                    "down": {}
-                }
+                self._grid = [
+                    [Cell() for _ in range(self.cols)] for _ in range(self.rows)
+                ]
+                self.words = {"across": {}, "down": {}}
                 self.populate_grid()
                 self.assign_numbering()
                 self.remove_extra_cells()
@@ -29,15 +31,18 @@ class Grid:
                     break
             iterable_keys = {
                 "across": list(self.words["across"].keys()),
-                "down": list(self.words["down"].keys())
+                "down": list(self.words["down"].keys()),
             }
             if self.populated_with_words(iterable_keys):
                 break
 
+        self.fill_sprite_group()
+        print(self.cell_grid)
+        self.update_sprites()
+
     def load_word_lists(self):
         word_list = WordList()
         return word_list.create_word_lists()
-
 
     @property
     def grid(self):
@@ -45,7 +50,7 @@ class Grid:
         Provides access to the grid.
         """
         return self._grid
-    
+
     def display_grid(self):
         """
         Displays the grid in a readable format.
@@ -55,25 +60,31 @@ class Grid:
                 if self._grid[y][x].letter != "#":
                     value = self._grid[y][x].numbering
                     letter = self._grid[y][x].letter
-                    # f"{value:02d}" if value is not None else 
+                    # f"{value:02d}" if value is not None else
                     formatted_value = f" {letter}" if letter is not None else "  "
-                    print(f"\033[31;107m{formatted_value}", end = "")
-                    print("\033[0m", end = "")
+                    print(f"\033[31;107m{formatted_value}", end="")
+                    print("\033[0m", end="")
                 else:
-                    print(f"\033[31;40m  ", end = "")
-                    print("\033[0m", end = "")     
+                    print(f"\033[31;40m  ", end="")
+                    print("\033[0m", end="")
             print()
 
-    def populated_with_words(self, iterable_keys, alt_index = 0, across_index = 0, down_index = 0):
+    def populated_with_words(
+        self, iterable_keys, alt_index=0, across_index=0, down_index=0
+    ):
         """
         REMEMBER TO POP USED WORDS IN A WAY THAT DOESN'T SCREW WITH THE ITERATION THROUGH WORDS.
         MAYBE PASS A COPY OF WORDLIST TO THE RECURSIVE FUNCTION WITH THE CURRENT WORD REMOVED?
         """
         # Stop populating with words if all across and down indexes have been iterated through
-        if across_index == len(iterable_keys["across"]) and down_index == len(iterable_keys["down"]):
+        if across_index == len(iterable_keys["across"]) and down_index == len(
+            iterable_keys["down"]
+        ):
             return True
-        
-        if across_index < len(iterable_keys["across"]) and (down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0):
+
+        if across_index < len(iterable_keys["across"]) and (
+            down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0
+        ):
             direction = "across"
             word_num = iterable_keys["across"][across_index]
             across_index += 1
@@ -116,12 +127,16 @@ class Grid:
                     else:
                         if across_num := self._grid[start_y + i][start_x].num_across:
                             if not self.words["across"][across_num].populated:
-                                if not self.perpendicular_word_valid("across", across_num):
+                                if not self.perpendicular_word_valid(
+                                    "across", across_num
+                                ):
                                     valid = False
                 if valid:
                     print()
                     self.display_grid()
-                    if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
+                    if self.populated_with_words(
+                        iterable_keys, alt_index + 1, across_index, down_index
+                    ):
                         return True
 
                 # Backtrack and erase the word
@@ -141,7 +156,7 @@ class Grid:
                         else:
                             self._grid[start_y + i][start_x].letter = None
         return False
-    
+
     def perpendicular_word_valid(self, direction, word_num):
         word_length = self.words[direction][word_num].length
         start_y, start_x = self.words[direction][word_num].start_pos
@@ -162,7 +177,6 @@ class Grid:
                 return True
         return False
 
-
     def iterate_word_index(self, iterable_keys, direction, key_index):
         if key_index < len(iterable_keys[direction]) - 1:
             key_index += 1
@@ -170,7 +184,7 @@ class Grid:
             direction = "down"
             key_index = 0
         return direction, key_index
-    
+
     def populate_grid(self):
         """
         Fills the blank space in the grid with black dividing boxes.
@@ -187,10 +201,10 @@ class Grid:
                 if self._grid[row][col].letter == None and not self.visited[row][col]:
                     return False
         return True
-    
+
     def get_first_space(self):
         for row in range(self.rows):
-            for col in range(self.cols):   
+            for col in range(self.cols):
                 if self._grid[row][col].letter == None:
                     return (col, row)
 
@@ -202,9 +216,13 @@ class Grid:
         for x, y in directions:
             next_coord = (current_x + x, current_y + y)
             next_x, next_y = next_coord
-            if 0 <= next_x < self.cols and 0 <= next_y < self.rows and self.visited[next_y][next_x] == False and self._grid[next_y][next_x].letter == None:
+            if (
+                0 <= next_x < self.cols
+                and 0 <= next_y < self.rows
+                and self.visited[next_y][next_x] == False
+                and self._grid[next_y][next_x].letter == None
+            ):
                 self.check_line_connections(next_coord)
-
 
     def remove_extra_cells(self):
         """
@@ -212,7 +230,10 @@ class Grid:
         """
         for row in range(self.rows):
             for col in range(self.cols):
-                if self._grid[row][col].num_across is None and self._grid[row][col].num_down is None:
+                if (
+                    self._grid[row][col].num_across is None
+                    and self._grid[row][col].num_down is None
+                ):
                     self._grid[row][col].letter = "#"
 
     def assign_numbering(self):
@@ -225,10 +246,15 @@ class Grid:
             for col in range(self.cols):
                 number_assigned = False
                 if self.grid[row][col].letter == None:
-                    if (col == 0 or self._grid[row][col - 1].letter == "#") and col != self.cols - 1:
+                    if (
+                        col == 0 or self._grid[row][col - 1].letter == "#"
+                    ) and col != self.cols - 1:
                         # Count the number of cells in this word (left to right), starting from the current cell
                         count = 0
-                        while col + count < self.cols and self._grid[row][col + count].letter != "#":
+                        while (
+                            col + count < self.cols
+                            and self._grid[row][col + count].letter != "#"
+                        ):
                             count += 1
                         if count >= 3:
                             self._grid[row][col].numbering = number
@@ -237,11 +263,18 @@ class Grid:
                             for i in range(count):
                                 self._grid[row][col + i].num_across = number
                             # Add across word to the dictionary
-                            self.words["across"][number] = Word(number, "across", (row, col), count)
-                    if (row == 0 or self._grid[row - 1][col].letter == "#") and row != self.rows - 1:
+                            self.words["across"][number] = Word(
+                                number, "across", (row, col), count
+                            )
+                    if (
+                        row == 0 or self._grid[row - 1][col].letter == "#"
+                    ) and row != self.rows - 1:
                         # Count the number of cells in this word (top to bottom), starting from the current cell
                         count = 0
-                        while row + count < self.rows and self._grid[row + count][col].letter != "#":
+                        while (
+                            row + count < self.rows
+                            and self._grid[row + count][col].letter != "#"
+                        ):
                             count += 1
                         if count >= 3:
                             self._grid[row][col].numbering = number
@@ -250,7 +283,9 @@ class Grid:
                             for i in range(count):
                                 self._grid[row + i][col].num_down = number
                             # Add down word to the dictionary
-                            self.words["down"][number] = Word(number, "down", (row, col), count)
+                            self.words["down"][number] = Word(
+                                number, "down", (row, col), count
+                            )
                     if number_assigned:
                         number += 1
 
@@ -299,8 +334,8 @@ class Grid:
         """
         for i in range(len(self._grid[row])):
             if i % 2 != 0:
-                self._grid[row][i].letter = '#'
-    
+                self._grid[row][i].letter = "#"
+
     def create_word_divisions(self, first_space, last_space, row):
         """
         Divides up a blank space in a row using black dividing squares, and does the same
@@ -316,9 +351,9 @@ class Grid:
         for division in divisions:
             end_of_row = len(self._grid[row]) - 1
             end_of_col = len(self._grid) - 1
-            self._grid[row][division].letter = '#'
+            self._grid[row][division].letter = "#"
             # Mirror inverted in the bottom rows
-            self._grid[end_of_col - row][end_of_row - division].letter = '#'
+            self._grid[end_of_col - row][end_of_row - division].letter = "#"
 
     def create_word_divisions_cols(self, first_space, last_space, col):
         """
@@ -335,9 +370,9 @@ class Grid:
         for division in divisions:
             end_of_row = len(self._grid[0]) - 1
             end_of_col = len(self._grid) - 1
-            self._grid[division][col].letter = '#'
+            self._grid[division][col].letter = "#"
             # Mirror inverted in the right columns
-            self._grid[end_of_col - division][end_of_row - col].letter = '#'
+            self._grid[end_of_col - division][end_of_row - col].letter = "#"
 
     def choose_word_lengths(self, first_space, last_space):
         """
@@ -348,7 +383,7 @@ class Grid:
         max_words = ((space_length - 3) // 4) + 1
         # Pick a random number of words to divide this space into
         if max_words == 4:
-            num_words = random.choices([1, 2], weights = [5, 100])[0]
+            num_words = random.choices([1, 2], weights=[5, 100])[0]
         elif max_words == 3:
             num_words = random.randint(1, 2)
         else:
@@ -366,8 +401,17 @@ class Grid:
                     shortest_word = 3
                     longest_word = remaining_space - (remaining_words * (3 + 1))
                     word_len_range = list(range(shortest_word, longest_word + 1))
-                    word_len_weights = [5 if word_len == 3 or (remaining_space - word_len == (3 + 1)) else 100 for word_len in word_len_range]
-                    word_length = random.choices(word_len_range, weights = word_len_weights)[0]
+                    word_len_weights = [
+                        (
+                            5
+                            if word_len == 3 or (remaining_space - word_len == (3 + 1))
+                            else 100
+                        )
+                        for word_len in word_len_range
+                    ]
+                    word_length = random.choices(
+                        word_len_range, weights=word_len_weights
+                    )[0]
                     # Deduct word length and a single space from remaining space
                     remaining_space -= word_length + 1
                 # Save the word lengths to a list
@@ -379,7 +423,7 @@ class Grid:
 
     def get_usable_spaces(self, row):
         """
-        Finds all usable spaces in a row and returns a list with the first and last index of each space. 
+        Finds all usable spaces in a row and returns a list with the first and last index of each space.
         """
         usable_spaces = []
         space = False
@@ -406,10 +450,10 @@ class Grid:
                         if last_space - first_space >= 3:
                             usable_spaces.append([first_space, last_space])
         return usable_spaces
-    
+
     def get_usable_spaces_cols(self, col):
         """
-        Finds all usable spaces in a column and returns a list with the first and last index of each space. 
+        Finds all usable spaces in a column and returns a list with the first and last index of each space.
         """
         usable_spaces = []
         space = False
@@ -436,3 +480,19 @@ class Grid:
                         if last_space - first_space >= 3:
                             usable_spaces.append([first_space, last_space])
         return usable_spaces
+
+    def fill_sprite_group(self):
+        for cell in self._grid:
+            self.cell_grid.add(cell)
+
+    def update_sprites(self):
+        offset = 52
+        positions = []
+        for row in range(self.rows):
+            for col in range(self.cols):
+                positions.append((col * offset, row * offset))
+
+        for cell in self.cell_grid:
+            cell.set_position(positions[0])
+            cell.update_cell()
+            positions.pop(0)
