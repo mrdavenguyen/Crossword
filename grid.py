@@ -192,9 +192,18 @@ class Grid:
         self.populate_columns()
 
     def lines_connected(self):
+        """
+        Checks whether all lines in the crossword are connected, and that no breaks exist.
+        """
         self.visited = [[False for _ in range(self.cols)] for _ in range(self.rows)]
         coords = self.get_first_space()
         self.check_line_connections(coords)
+        return self.all_spaces_visited()
+
+    def all_spaces_visited(self):
+        """
+        Checks whether the locations of all of the empty white cells in the grid have also been marked as "visited".
+        """
         for row in range(self.rows):
             for col in range(self.cols):
                 if self._grid[row][col].letter == None and not self.visited[row][col]:
@@ -202,12 +211,18 @@ class Grid:
         return True
     
     def get_first_space(self):
+        """
+        Finds the location of the first empty white cell in the grid when iterating from the first cell of the first row to the last cell of the last row.
+        """
         for row in range(self.rows):
             for col in range(self.cols):   
                 if self._grid[row][col].letter == None:
                     return (col, row)
 
     def check_line_connections(self, coords):
+        """
+        Recursively searches surrounding cells to see if they are empty white cells, and marks them as visited.
+        """
         directions = ((-1, 0), (1, 0), (0, -1), (0, 1))
         current_x = coords[0]
         current_y = coords[1]
