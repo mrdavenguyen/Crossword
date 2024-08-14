@@ -175,14 +175,6 @@ class Grid:
             if valid:
                 return True
         return False
-
-    def iterate_word_index(self, iterable_keys, direction, key_index):
-        if key_index < len(iterable_keys[direction]) - 1:
-            key_index += 1
-        else:
-            direction = "down"
-            key_index = 0
-        return direction, key_index
     
     def populate_grid(self):
         """
