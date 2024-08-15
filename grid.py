@@ -236,42 +236,72 @@ class Grid:
 
     def assign_numbering(self):
         """
-        Assigns numbers to cells that begin across and down words, and give cells membership to these
-        numbered words.
+        Assigns an incrementing number to cells that begin across and down words.
         """
         number = 1
         for row in range(self.rows):
             for col in range(self.cols):
                 number_assigned = False
                 if self.grid[row][col].letter == None:
-                    if (col == 0 or self._grid[row][col - 1].letter == "#") and col != self.cols - 1:
-                        # Count the number of cells in this word (left to right), starting from the current cell
-                        count = 0
-                        while col + count < self.cols and self._grid[row][col + count].letter != "#":
-                            count += 1
-                        if count >= 3:
-                            self._grid[row][col].numbering = number
-                            number_assigned = True
-                            # Assign membership to across word
-                            for i in range(count):
-                                self._grid[row][col + i].num_across = number
-                            # Add across word to the dictionary
-                            self.words["across"][number] = Word(number, "across", (row, col), count)
-                    if (row == 0 or self._grid[row - 1][col].letter == "#") and row != self.rows - 1:
-                        # Count the number of cells in this word (top to bottom), starting from the current cell
-                        count = 0
-                        while row + count < self.rows and self._grid[row + count][col].letter != "#":
-                            count += 1
-                        if count >= 3:
-                            self._grid[row][col].numbering = number
-                            number_assigned = True
-                            # Assign membership to down word
-                            for i in range(count):
-                                self._grid[row + i][col].num_down = number
-                            # Add down word to the dictionary
-                            self.words["down"][number] = Word(number, "down", (row, col), count)
+                    number_assigned = self.assign_across_numbering(row, col, number, number_assigned)
+                    number_assigned = self.assign_down_numbering(row, col, number, number_assigned)
                     if number_assigned:
                         number += 1
+
+    def assign_across_numbering(self, row, col, number, number_assigned):
+        """
+        Assigns a number to a cell at the start of an across word.
+        """
+        if (col == 0 or self._grid[row][col - 1].letter == "#") and col != self.cols - 1:
+            word_length = self.count_cells_in_word(row, col, "across")
+            if word_length >= 3:
+                self._grid[row][col].numbering = number
+                number_assigned = True
+                self.assign_membership_to_word(word_length, row, col, number, "across")
+                self.add_word_object_to_dictionary("across", number, row, col, word_length)
+        return number_assigned
+    
+    def assign_down_numbering(self, row, col, number, number_assigned):
+        """
+        Assigns a number to a cell at the start of a down word.
+        """
+        if (row == 0 or self._grid[row - 1][col].letter == "#") and row != self.rows - 1:
+            word_length = self.count_cells_in_word(row, col, "down")
+            if word_length >= 3:
+                self._grid[row][col].numbering = number
+                number_assigned = True
+                self.assign_membership_to_word(word_length, row, col, number, "down")
+                self.add_word_object_to_dictionary("down", number, row, col, word_length)
+        return number_assigned
+    
+    def add_word_object_to_dictionary(self, direction, number, row, col, word_length):
+        """
+        Adds and instantiates a Word object to the self.words dictionary.
+        """
+        self.words[direction][number] = Word(number, direction, (row, col), word_length)
+    
+    def count_cells_in_word(self, row, col, direction):
+        """
+        Counts the number of cells in this word starting from the current cell.
+        """
+        count = 0
+        if direction == "across":
+            while col + count < self.cols and self._grid[row][col + count].letter != "#":
+                count += 1
+        else:
+            while row + count < self.rows and self._grid[row + count][col].letter != "#":
+                count += 1
+        return count
+
+    def assign_membership_to_word(self, word_length, row, col, number, direction):
+        """
+        Assigns each cell in a word to the given word number.
+        """
+        for i in range(word_length):
+            if direction == "across":
+                self._grid[row][col + i].num_across = number
+            else:
+                self._grid[row + i][col].num_down = number
 
     def populate_columns(self):
         """
