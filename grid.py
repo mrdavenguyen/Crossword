@@ -178,10 +178,10 @@ class Grid:
     
     def populate_grid(self):
         """
-        Fills the blank space in the grid with black dividing boxes.
+        Populates the grid with rotationally symmetrical black dividing boxes.
         """
-        self.populate_rows()
-        self.populate_columns()
+        self.populate_lines("rows")
+        self.populate_lines("columns")
 
     def lines_connected(self):
         """
@@ -303,44 +303,27 @@ class Grid:
             else:
                 self._grid[row + i][col].num_down = number
 
-    def populate_columns(self):
+    def populate_lines(self, orientation):
         """
-        Checks for usable space in each column and divides each space up into smaller word spaces
-        using black squares as dividers.
+        Checks for usable space in each first alternating line and divides each space up into smaller word spaces
+        using black squares as dividers. On every second line, creates dividers in every second space.
         """
-        if len(self._grid) % 2 == 0:
-            half_grid = len(self._grid[0]) // 2
-        else:
-            half_grid = len(self._grid[0]) // 2 + 1
-        for col in range(half_grid):
-            if col % 2 == 0:
-                usable_spaces = self.get_usable_spaces_cols(col)
+        half_grid = len(self._grid) // 2 + 1
+        for line in range(half_grid):
+            if line % 2 == 0:
+                if orientation == "rows":
+                    usable_spaces = self.get_usable_spaces(line)
+                else:
+                    usable_spaces = self.get_usable_spaces_cols(line)
                 for usable_space in usable_spaces:
-                    first_space = usable_space[0]
-                    last_space = usable_space[1]
-                    self.create_word_divisions(first_space, last_space, col, "columns")
-
-    def populate_rows(self):
-        """
-        Checks for usable space in each row and divides each space up into smaller word spaces
-        using black squares as dividers.
-        """
-        if len(self._grid) % 2 == 0:
-            half_grid = len(self._grid) // 2
-        else:
-            half_grid = len(self._grid) // 2 + 1
-        for row in range(half_grid):
-            if row % 2 == 0:
-                usable_spaces = self.get_usable_spaces(row)
-                for usable_space in usable_spaces:
-                    first_space = usable_space[0]
-                    last_space = usable_space[1]
-                    self.create_word_divisions(first_space, last_space, row, "rows")
+                    first_space, last_space = (usable_space[0], usable_space[1])
+                    self.create_word_divisions(first_space, last_space, line, orientation)
             else:
-                self.create_alternating_divisions(row)
-                if row != half_grid - 1:
-                    # Mirror in the bottom rows
-                    self.create_alternating_divisions(len(self._grid) - 1 - row)
+                if orientation == "rows":
+                    self.create_alternating_divisions(line)
+                    if line != half_grid - 1:
+                        # Mirror in the bottom rows
+                        self.create_alternating_divisions(len(self._grid) - 1 - line)
 
     def create_alternating_divisions(self, row):
         """
