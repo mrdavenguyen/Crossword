@@ -318,7 +318,7 @@ class Grid:
                 for usable_space in usable_spaces:
                     first_space = usable_space[0]
                     last_space = usable_space[1]
-                    self.create_word_divisions_cols(first_space, last_space, col)
+                    self.create_word_divisions(first_space, last_space, col, "columns")
 
     def populate_rows(self):
         """
@@ -335,7 +335,7 @@ class Grid:
                 for usable_space in usable_spaces:
                     first_space = usable_space[0]
                     last_space = usable_space[1]
-                    self.create_word_divisions(first_space, last_space, row)
+                    self.create_word_divisions(first_space, last_space, row, "rows")
             else:
                 self.create_alternating_divisions(row)
                 if row != half_grid - 1:
@@ -350,43 +350,47 @@ class Grid:
             if i % 2 != 0:
                 self._grid[row][i].letter = '#'
     
-    def create_word_divisions(self, first_space, last_space, row):
+    def create_word_divisions(self, first_space, last_space, line, orientation):
         """
-        Divides up a blank space in a row using black dividing squares, and does the same
-        for the equivalent horizontally inverted mirrored space in the bottom half of the grid.
+        Divides up a blank space in a line using black dividing squares according to the chosen
+        length of words within that space, and does the same for the equivalent mirrored and axially
+        inverted space on the grid.
         """
         word_lengths = self.choose_word_lengths(first_space, last_space)
-        divisions = []
-        # Add the word lengths + 1 to the index before the first space to get the indexes of the divisions
-        div_index = first_space - 1
-        for word_length in word_lengths[:-1]:
-            div_index += word_length + 1
-            divisions.append(div_index)
-        for division in divisions:
-            end_of_row = len(self._grid[row]) - 1
-            end_of_col = len(self._grid) - 1
-            self._grid[row][division].letter = '#'
-            # Mirror inverted in the bottom rows
-            self._grid[end_of_col - row][end_of_row - division].letter = '#'
+        divisions = self.find_division_indexes(first_space, word_lengths)
+        self.draw_divisions(divisions, orientation, line)
 
-    def create_word_divisions_cols(self, first_space, last_space, col):
+
+    def find_division_indexes(self, first_space, word_lengths):
         """
-        Divides up a blank space in a column using black dividing squares, and does the same
-        for the equivalent vertically inverted mirrored space in the right half of the grid.
+        Finds the indexes of all of the grid divisions in the given space based on the word lengths
+        that the space is divided up into.
         """
-        word_lengths = self.choose_word_lengths(first_space, last_space)
         divisions = []
         # Add the word lengths + 1 to the index before the first space to get the indexes of the divisions
         div_index = first_space - 1
         for word_length in word_lengths[:-1]:
             div_index += word_length + 1
             divisions.append(div_index)
+        return divisions
+
+    def draw_divisions(self, divisions, orientation, line):
+        """
+        Draws black dividing squares ("#") into a given space according to a list of indexes, and does the same
+        for the equivalent horizontally inverted mirrored space in the bottom half of the grid
+        if the orientation is "rows". Otherwise does the same for the equivalent vertically
+        inverted mirrored space in the right half of the grid if the orientation is "columns".
+        """
         for division in divisions:
-            end_of_row = len(self._grid[0]) - 1
-            end_of_col = len(self._grid) - 1
-            self._grid[division][col].letter = '#'
-            # Mirror inverted in the right columns
-            self._grid[end_of_col - division][end_of_row - col].letter = '#'
+            end_of_row, end_of_col = (len(self._grid[0]) - 1, len(self._grid) - 1)
+            if orientation == "rows":
+                self._grid[line][division].letter = '#'
+                # Mirror inverted in the bottom rows
+                self._grid[end_of_col - line][end_of_row - division].letter = '#'
+            else:
+                self._grid[division][line].letter = '#'
+                # Mirror inverted in the right columns
+                self._grid[end_of_col - division][end_of_row - line].letter = '#'
 
     def choose_word_lengths(self, first_space, last_space):
         """
