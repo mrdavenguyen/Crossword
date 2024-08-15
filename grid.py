@@ -311,10 +311,7 @@ class Grid:
         half_grid = len(self._grid) // 2 + 1
         for line in range(half_grid):
             if line % 2 == 0:
-                if orientation == "rows":
-                    usable_spaces = self.get_usable_spaces(line)
-                else:
-                    usable_spaces = self.get_usable_spaces_cols(line)
+                usable_spaces = self.find_usable_spaces(line, orientation)
                 for usable_space in usable_spaces:
                     first_space, last_space = (usable_space[0], usable_space[1])
                     self.create_word_divisions(first_space, last_space, line, orientation)
@@ -412,63 +409,71 @@ class Grid:
             # If only one word, return
             word_lengths.append(remaining_space)
         return word_lengths
-
-    def get_usable_spaces(self, row):
+    
+    def find_usable_spaces(self, line, orientation, space=False, first_space=0, last_space=0):
         """
-        Finds all usable spaces in a row and returns a list with the first and last index of each space. 
+        Finds all usable spaces in a line and returns a list with the first and last index of each space. 
         """
         usable_spaces = []
-        space = False
-        first_space = 0
-        last_space = 0
-        row_length = len(self._grid[row])
-        for i in range(row_length):
-            if space == False:
-                # First space, or first after a black square
-                if self._grid[row][i].letter == None:
-                    space = True
-                    first_space = i
+        for pos in range(self.rows):
+            if not space:
+                space, first_space = self.find_first_space(pos, space, first_space, line, orientation)
             else:
-                # Black square
-                if self._grid[row][i].letter != None:
-                    space = False
-                    last_space = i - 1
-                    if last_space - first_space >= 3:
-                        usable_spaces.append([first_space, last_space])
+                if orientation == "rows":
+                    space = self.find_last_space_rows(pos, space, first_space, last_space, line, usable_spaces)
                 else:
-                    # Last space in the row, with preceeding spaces
-                    if i == row_length - 1:
-                        last_space = i
-                        if last_space - first_space >= 3:
-                            usable_spaces.append([first_space, last_space])
+                    space = self.find_last_space_cols(pos, space, first_space, last_space, line, usable_spaces)
         return usable_spaces
     
-    def get_usable_spaces_cols(self, col):
+    def find_first_space(self, pos, space, first_space, line, orientation):
         """
-        Finds all usable spaces in a column and returns a list with the first and last index of each space. 
+        Finds the next cell that begins a space within the current line. Returns the index of this space and sets the boolean
+        "space" to True, signalling that the space has been started.
         """
-        usable_spaces = []
-        space = False
-        first_space = 0
-        last_space = 0
-        col_length = len(self._grid)
-        for i in range(col_length):
-            if space == False:
-                # First space, or first after a black square
-                if self._grid[i][col].letter == None:
-                    space = True
-                    first_space = i
-            else:
-                # Black square
-                if self._grid[i][col].letter != None:
-                    space = False
-                    last_space = i - 1
-                    if last_space - first_space >= 3:
-                        usable_spaces.append([first_space, last_space])
-                else:
-                    # Last space in the row, with preceeding spaces
-                    if i == col_length - 1:
-                        last_space = i
-                        if last_space - first_space >= 3:
-                            usable_spaces.append([first_space, last_space])
-        return usable_spaces
+        if orientation == "rows":
+            if self._grid[line][pos].letter == None:
+                space = True
+                first_space = pos
+        else:
+            if self._grid[pos][line].letter == None:
+                space = True
+                first_space = pos
+        return space, first_space
+    
+    def find_last_space_rows(self, pos, space, first_space, last_space, line, usable_spaces):
+        """
+        Finds the last cell in the current space, whether due to the next cell being a black square or because the end of the row has been reached.
+        Appends the first and last spaces to a list and sets the boolean "space" to False, signalling that the space has ended.
+        """
+        # Black square
+        if self._grid[line][pos].letter != None:
+            space = False
+            last_space = pos - 1
+            if last_space - first_space >= 3:
+                usable_spaces.append((first_space, last_space))
+        else:
+            # Last space in the row, with preceeding spaces
+            if pos == self.rows - 1:
+                last_space = pos
+                if last_space - first_space >= 3:
+                    usable_spaces.append((first_space, last_space))
+        return space
+    
+    def find_last_space_cols(self, pos, space, first_space, last_space, line, usable_spaces):
+        """
+        Finds the last cell in the current space, whether due to the next cell being a black square or because the end of the column has been reached.
+        Appends the first and last spaces to a list and sets the boolean "space" to False, signalling that the space has ended.
+        """
+        # Black square
+        if self._grid[pos][line].letter != None:
+            space = False
+            last_space = pos - 1
+            if last_space - first_space >= 3:
+                usable_spaces.append((first_space, last_space))
+        else:
+            # Last space in the column, with preceeding spaces
+            if pos == self.cols - 1:
+                last_space = pos
+                if last_space - first_space >= 3:
+                    usable_spaces.append((first_space, last_space))
+        return space
