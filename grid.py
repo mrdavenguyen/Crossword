@@ -66,13 +66,39 @@ class Grid:
 
     def populated_with_words(self, iterable_keys, alt_index = 0, across_index = 0, down_index = 0):
         """
-        REMEMBER TO POP USED WORDS IN A WAY THAT DOESN'T SCREW WITH THE ITERATION THROUGH WORDS.
-        MAYBE PASS A COPY OF WORDLIST TO THE RECURSIVE FUNCTION WITH THE CURRENT WORD REMOVED?
+        Attempts to recursively populate the crossword grid with words from the wordlist.
+        This method uses a backtracking algorithm to fill the crossword grid by alternating 
+        between 'across' and 'down' words. It selects words from the provided wordlists that 
+        fit into the current grid configuration, ensuring that all intersecting words are 
+        valid. If a word placement leads to a dead end (i.e., no valid subsequent placements), 
+        the method backtracks and tries alternative words. The function returns a boolean based
+        on whether population is successful.
         """
-        # Stop populating with words if all across and down indexes have been iterated through
         if across_index == len(iterable_keys["across"]) and down_index == len(iterable_keys["down"]):
             return True
-        
+        direction, word_num, across_index, down_index = self.alternate_index_directions(across_index, down_index, alt_index, iterable_keys)
+        word_length = self.words[direction][word_num].length
+        start_y, start_x = self.words[direction][word_num].start_pos
+        current_word = [self._grid[start_y][start_x + i].letter if direction == "across" else self._grid[start_y + i][start_x].letter for i in range(word_length)]
+        for word in self.wordlists[word_length]:
+            if self.can_place_word(word_length, current_word, word):
+                self.place_word(word_length, direction, start_y, start_x, word, word_num)
+                if self.all_perpendicular_words_valid(word_length, direction, start_y, start_x):
+                    print()
+                    self.display_grid()
+                    if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
+                        return True
+                self.erase_word(direction, word_num, word_length, start_y, start_x)
+        return False
+    
+    def alternate_index_directions(self, across_index, down_index, alt_index, iterable_keys):
+        """
+        Determines the direction of the next word to be placed and updates the corresponding indices.
+        This method alternates between "across" and "down" directions for placing words in a crossword grid. 
+        It checks the current indices and the alternation index to decide whether to place the next word 
+        in the 'across' or 'down' direction. The method then increments the appropriate index and returns 
+        the selected direction, word number, and updated indices.
+        """
         if across_index < len(iterable_keys["across"]) and (down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0):
             direction = "across"
             word_num = iterable_keys["across"][across_index]
@@ -81,66 +107,73 @@ class Grid:
             direction = "down"
             word_num = iterable_keys["down"][down_index]
             down_index += 1
-
-        word_length = self.words[direction][word_num].length
-        start_y, start_x = self.words[direction][word_num].start_pos
-        current_word = []
-
+        return direction, word_num, across_index, down_index
+    
+    def erase_word(self, direction, word_num, word_length, start_y, start_x):
+        """
+        Erases the current word while ensuring that any letters on the intersection of populated
+        words are retained.
+        """
+        self.words[direction][word_num].word = None
+        self.words[direction][word_num].populated = False
         for i in range(word_length):
             if direction == "across":
-                current_word.append(self._grid[start_y][start_x + i].letter)
+                if down_num := self._grid[start_y][start_x + i].num_down:
+                    if not self.words["down"][down_num].populated:
+                        self._grid[start_y][start_x + i].letter = None
+                else:
+                    self._grid[start_y][start_x + i].letter = None
             else:
-                current_word.append(self._grid[start_y + i][start_x].letter)
+                if across_num := self._grid[start_y + i][start_x].num_across:
+                    if not self.words["across"][across_num].populated:
+                        self._grid[start_y + i][start_x].letter = None
+                else:
+                    self._grid[start_y + i][start_x].letter = None
+    
+    def can_place_word(self, word_length, current_word, word):
+        """
+        Checks whether a word can be placed in the current line, given the existing letters in the line.
+        """
+        for i in range(word_length):
+            if current_word[i] and word[i] != current_word[i]:
+                return False
+        return True
+    
+    def place_word(self, word_length, direction, start_y, start_x, word, word_num):
+        """
+        Places the chosen a word in a line determined by the starting x and y coordinates and the direction of the line (across or down).
+        This function additionally updates the associated Word object with the "word" string, and sets the boolean "populated"
+        to True to indicate that the word is currently filled.
+        """
+        for i in range(word_length):
+            if direction == "across":
+                self._grid[start_y][start_x + i].letter = word[i]
+            else:
+                self._grid[start_y + i][start_x].letter = word[i]
+        self.words[direction][word_num].word = word
+        self.words[direction][word_num].populated = True
 
-        for word in self.wordlists[word_length]:
-            valid = True
-            for i in range(word_length):
-                if current_word[i] and word[i] != current_word[i]:
-                    valid = False
-            if valid:
-                for i in range(word_length):
-                    if direction == "across":
-                        self._grid[start_y][start_x + i].letter = word[i]
-                    else:
-                        self._grid[start_y + i][start_x].letter = word[i]
-                self.words[direction][word_num].word = word
-                self.words[direction][word_num].populated = True
-                # Go through each cell in the word, and if it's an intersection, and the intersecting word isn't already populated
-                # check whether a valid word can be made in the perpendicular line if it intersects with a letter in the current word.
-                for i in range(word_length):
-                    if direction == "across":
-                        if down_num := self._grid[start_y][start_x + i].num_down:
-                            if not self.words["down"][down_num].populated:
-                                if not self.perpendicular_word_valid("down", down_num):
-                                    valid = False
-                    else:
-                        if across_num := self._grid[start_y + i][start_x].num_across:
-                            if not self.words["across"][across_num].populated:
-                                if not self.perpendicular_word_valid("across", across_num):
-                                    valid = False
-                if valid:
-                    print()
-                    self.display_grid()
-                    if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
-                        return True
+    def all_perpendicular_words_valid(self, word_length, direction, start_y, start_x):
+        """
+        Checks whether all perpendicular words intersecting the current word are valid.
+        This function iterates through each cell of a word in the specified direction (across or down) 
+        and verifies that any intersecting words in the perpendicular direction are either already 
+        populated or can be populated with a valid word. If any of the intersecting words cannot be 
+        validly populated, the function returns False.
+        """
+        for i in range(word_length):
+            if direction == "across":
+                if down_num := self._grid[start_y][start_x + i].num_down:
+                    if not self.words["down"][down_num].populated:
+                        if not self.perpendicular_word_valid("down", down_num):
+                            return False
+            else:
+                if across_num := self._grid[start_y + i][start_x].num_across:
+                    if not self.words["across"][across_num].populated:
+                        if not self.perpendicular_word_valid("across", across_num):
+                            return False
+        return True
 
-                # Backtrack and erase the word
-                self.words[direction][word_num].word = None
-                self.words[direction][word_num].populated = False
-                for i in range(word_length):
-                    if direction == "across":
-                        if down_num := self._grid[start_y][start_x + i].num_down:
-                            if not self.words["down"][down_num].populated:
-                                self._grid[start_y][start_x + i].letter = None
-                        else:
-                            self._grid[start_y][start_x + i].letter = None
-                    else:
-                        if across_num := self._grid[start_y + i][start_x].num_across:
-                            if not self.words["across"][across_num].populated:
-                                self._grid[start_y + i][start_x].letter = None
-                        else:
-                            self._grid[start_y + i][start_x].letter = None
-        return False
     
     def perpendicular_word_valid(self, direction, word_num):
         """
