@@ -10,14 +10,8 @@ class Cell(pygame.sprite.Sprite):
         self.color = None
 
         self.size = 50
-        # Define the font and render the letter
-        self.letter_font = pygame.font.SysFont(
-            None, (self.size // 5) * 4
-        )  # Adjust font size to fit within the square
-        # Define the font and render the letter
-        self.number_font = pygame.font.SysFont(
-            None, (self.size // 5) * 2
-        )  # Adjust font size to fit within the square
+        self.letter_font = pygame.font.SysFont("Trebuchet", (self.size // 5) * 4)
+        self.number_font = pygame.font.SysFont("Trebuchet", (self.size // 5) * 2)
 
         self.image = pygame.Surface((self.size, self.size))
         self.rect = self.image.get_rect()
@@ -63,7 +57,7 @@ class Cell(pygame.sprite.Sprite):
 
     def display_letter_on_cell(self):
         text_surface = self.letter_font.render(
-            self.letter, True, (0, 0, 0)
+            self.letter.upper(), True, (0, 0, 0)
         )  # Render the letter in black color
 
         # Center the text on the square surface
