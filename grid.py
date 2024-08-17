@@ -292,6 +292,7 @@ class Grid:
                 number_assigned = True
                 self.assign_membership_to_word(word_length, row, col, number, "across")
                 self.add_word_object_to_dictionary("across", number, row, col, word_length)
+                self.add_word_object_to_cell(word_length, row, col, number, "across")
         return number_assigned
     
     def assign_down_numbering(self, row, col, number, number_assigned):
@@ -305,6 +306,7 @@ class Grid:
                 number_assigned = True
                 self.assign_membership_to_word(word_length, row, col, number, "down")
                 self.add_word_object_to_dictionary("down", number, row, col, word_length)
+                self.add_word_object_to_cell(word_length, row, col, number, "down")
         return number_assigned
     
     def add_word_object_to_dictionary(self, direction, number, row, col, word_length):
@@ -335,6 +337,13 @@ class Grid:
                 self._grid[row][col + i].num_across = number
             else:
                 self._grid[row + i][col].num_down = number
+
+    def add_word_object_to_cell(self, word_length, row, col, number, direction):
+        for i in range(word_length):
+            if direction == "across":
+                self._grid[row][col + i].word_across = self.words[direction][number]
+            else:
+                self._grid[row + i][col].word_down = self.words[direction][number]
 
     def populate_lines(self, orientation):
         """
