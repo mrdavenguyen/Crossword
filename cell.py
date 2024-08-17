@@ -5,6 +5,8 @@ class Cell:
         self.numbering = None # None or the number of the clue
         self.num_across = None # Reference to the across word number
         self.num_down = None # Reference to the down word number
+        self.word_across = None # Word object of across word that cell is a member of
+        self.word_down = None # Word object of down word that cell is a member of
 
     def __str__(self):
         """
