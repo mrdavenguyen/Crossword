@@ -6,3 +6,4 @@ class Word:
         self.length = length # Length of the word
         self.word = None
         self.populated = False # Boolean indicating if the word is populated
+        self.cells = [] # Coordinates stored in a list in the form [(row, col), ...]
