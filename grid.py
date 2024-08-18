@@ -111,12 +111,12 @@ class Grid:
                     if direction == "across":
                         if down_num := self._grid[start_y][start_x + i].num_down:
                             if not self.words["down"][down_num].populated:
-                                if not self.perpendicular_word_valid("down", down_num):
+                                if not self.can_be_perpendicular("down", down_num):
                                     valid = False
                     else:
                         if across_num := self._grid[start_y + i][start_x].num_across:
                             if not self.words["across"][across_num].populated:
-                                if not self.perpendicular_word_valid("across", across_num):
+                                if not self.can_be_perpendicular("across", across_num):
                                     valid = False
                 if valid:
                     print()
@@ -142,19 +142,56 @@ class Grid:
                             self._grid[start_y + i][start_x].letter = None
         return False
     
-    def perpendicular_word_valid(self, direction, word_num):
-        """
-        Checks if a valid word can be made in a perpendicular line specified by the direction and word_num parameters.
-        """
-        word_length = self.words[direction][word_num].length
-        start_y, start_x = self.words[direction][word_num].start_pos
-        current_letters = self.collect_current_letters(word_length, start_y, start_x, direction)
-        return self.valid_word(word_length, current_letters)
+    def can_be_perpendicular(self, direction, word_num):
+        """  
+        Checks if a valid word can be placed in a perpendicular line specified by the direction and word_num parameters.  
+        Args:  
+            direction (str): The direction of the word, either 'across' or 'down'.  
+            word_num (int): The index of the word in the specified direction.  
+        Returns:  
+            bool: True if a valid perpendicular word can be formed, False otherwise.  
+        """  
+        word = self.get_word(direction, word_num)
+        return self.is_valid_perpendicular_word(word)
     
-    def collect_current_letters(self, word_length, start_y, start_x, direction):
+    def is_valid_perpendicular_word(self, word):  
+        """  
+        Checks if the given word can be placed perpendicularly in the current grid configuration.  
+        Args:  
+            word (Word): The word object that contains the length and position details.  
+
+        Returns:  
+            bool: True if the word can be placed perpendicularly and is valid, False otherwise.  
+        """  
+        current_letters = self.get_current_letters(word)  
+        return self.is_valid_word(word.length, current_letters) 
+    
+    def get_word(self, direction, word_num):  
+        """  
+        Retrieves the word object from the grid based on direction and index.  
+        Args:  
+            direction (str): The direction of the word, either 'across' or 'down'.  
+            word_num (int): The index of the word in the specified direction.  
+
+        Returns:  
+            Word: The `Word` object at the given direction and index.  
+        """  
+        return self.words[direction][word_num]  
+    
+    def get_current_letters(self, word):
         """
-        Provides a list of letters in the current line.
+        Retrieves the current letters from the grid corresponding to the given word's position and direction.
+
+        Args:
+            word (Word): The word object containing information about its length, start position, and direction.
+
+        Returns:
+            list: A list of characters representing the current letters on the grid where the word is placed.
+                If a cell is empty, the corresponding entry in the list will be an empty string.
         """
+        word_length = word.length
+        start_y, start_x = word.start_pos
+        direction = word.direction 
         current_letters = []
         for i in range(word_length):
             if direction == "across":
@@ -163,9 +200,16 @@ class Grid:
                 current_letters.append(self._grid[start_y + i][start_x].letter)
         return current_letters
 
-    def valid_word(self, word_length, current_letters):
+    def is_valid_word(self, word_length, current_letters):
         """
-        Checks if a valid word can be made given the current letters in a line.
+        Checks if a valid word can be formed with the given the letters in a line.
+
+        Args:
+            word_length (int): The length of the word to validate.
+            current_letters (list): A list of characters representing the current letters in the line.
+                                    Empty positions should be represented by empty strings.
+        Returns:
+            bool: `True` if a valid word can be formed with the current letters, `False` otherwise.
         """
         for word in self.wordlists[word_length]:
             valid = True
@@ -175,14 +219,6 @@ class Grid:
             if valid:
                 return True
         return False
-
-    def iterate_word_index(self, iterable_keys, direction, key_index):
-        if key_index < len(iterable_keys[direction]) - 1:
-            key_index += 1
-        else:
-            direction = "down"
-            key_index = 0
-        return direction, key_index
     
     def populate_grid(self):
         """
