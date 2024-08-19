@@ -1,4 +1,7 @@
 import random
+from typing import List
+from typing import Optional
+from typing import Tuple
 from cell import Cell
 from word import Word
 from word_list import WordList
@@ -24,7 +27,7 @@ class Grid:
                 self.populate_grid()
                 self.assign_numbering()
                 self.remove_extra_cells()
-                if self.lines_connected():
+                if self.are_lines_connected():
                     self.display_grid()
                     break
             iterable_keys = {
@@ -142,33 +145,31 @@ class Grid:
                             self._grid[start_y + i][start_x].letter = None
         return False
     
-    def can_be_perpendicular(self, direction, word_num):
+    def can_be_perpendicular(self, direction: str, word_num: int) -> bool:
         """  
         Checks if a valid word can be placed in a perpendicular line specified by the direction and word_num parameters.  
+
         Args:  
             direction (str): The direction of the word, either 'across' or 'down'.  
             word_num (int): The index of the word in the specified direction.  
-        Returns:  
-            bool: True if a valid perpendicular word can be formed, False otherwise.  
         """  
-        word = self.get_word(direction, word_num)
+        word: Word = self.get_word(direction, word_num)
         return self.is_valid_perpendicular_word(word)
     
-    def is_valid_perpendicular_word(self, word):  
+    def is_valid_perpendicular_word(self, word: Word) -> bool:  
         """  
-        Checks if the given word can be placed perpendicularly in the current grid configuration.  
+        Checks if the given word can be placed perpendicularly in the current grid configuration. 
+
         Args:  
             word (Word): The word object that contains the length and position details.  
-
-        Returns:  
-            bool: True if the word can be placed perpendicularly and is valid, False otherwise.  
         """  
-        current_letters = self.get_current_letters(word)  
+        current_letters: List[Optional[str]] = self.get_current_letters(word)  
         return self.is_valid_word(word.length, current_letters) 
     
-    def get_word(self, direction, word_num):  
+    def get_word(self, direction: str, word_num: int) -> Word:  
         """  
-        Retrieves the word object from the grid based on direction and index.  
+        Retrieves the word object from the grid based on direction and index.
+
         Args:  
             direction (str): The direction of the word, either 'across' or 'down'.  
             word_num (int): The index of the word in the specified direction.  
@@ -178,7 +179,7 @@ class Grid:
         """  
         return self.words[direction][word_num]  
     
-    def get_current_letters(self, word):
+    def get_current_letters(self, word: Word) -> List[Optional[str]]:
         """
         Retrieves the current letters from the grid corresponding to the given word's position and direction.
 
@@ -186,13 +187,13 @@ class Grid:
             word (Word): The word object containing information about its length, start position, and direction.
 
         Returns:
-            list: A list of characters representing the current letters on the grid where the word is placed.
-                If a cell is empty, the corresponding entry in the list will be an empty string.
+            List[Optional[str]]: A list of characters representing the current letters on the grid where the word is placed.
+                If a cell is has no letter, the corresponding value will be None.
         """
-        word_length = word.length
+        word_length: int = word.length
         start_y, start_x = word.start_pos
-        direction = word.direction 
-        current_letters = []
+        direction: str = word.direction 
+        current_letters: List[Optional[str]] = []
         for i in range(word_length):
             if direction == "across":
                 current_letters.append(self._grid[start_y][start_x + i].letter)
@@ -200,19 +201,16 @@ class Grid:
                 current_letters.append(self._grid[start_y + i][start_x].letter)
         return current_letters
 
-    def is_valid_word(self, word_length, current_letters):
+    def is_valid_word(self, word_length: int, current_letters: List[Optional[str]]) -> bool:
         """
         Checks if a valid word can be formed with the given the letters in a line.
 
         Args:
-            word_length (int): The length of the word to validate.
-            current_letters (list): A list of characters representing the current letters in the line.
-                                    Empty positions should be represented by empty strings.
-        Returns:
-            bool: `True` if a valid word can be formed with the current letters, `False` otherwise.
+            current_letters (List[Optional[str]]): A list of characters representing the current letters in the line.
+                                    Empty positions should be represented by None.
         """
         for word in self.wordlists[word_length]:
-            valid = True
+            valid: bool = True
             for i in range(word_length):
                 if current_letters[i] and word[i] != current_letters[i]:
                     valid = False
@@ -227,33 +225,62 @@ class Grid:
         self.populate_rows()
         self.populate_columns()
 
-    def lines_connected(self):
-        self.visited = [[False for _ in range(self.cols)] for _ in range(self.rows)]
-        coords = self.get_first_space()
+    def are_lines_connected(self) -> bool:
+        """
+        Checks whether all lines in the crossword are connected, and that no breaks exist.
+        """
+        self.visited: List[List[bool]] = self.initialize_visited_grid()
+        coords: Tuple[int, int] = self.get_first_space()
         self.check_line_connections(coords)
+        return self.are_all_white_cells_visited()
+    
+    def initialize_visited_grid(self) -> List[List[bool]]:
+        """  
+        Initializes the visited grid to track which cells have been checked.
+
+        Returns:
+            List[List[bool]]: A 2d list the same size as the grid, filled with the value False.
+        """  
+        return [[False for _ in range(self.cols)] for _ in range(self.rows)]
+
+    def are_all_white_cells_visited(self) -> bool:
+        """
+        Checks whether the locations of all of the empty white cells in the grid have also been marked as "visited".
+        """
         for row in range(self.rows):
             for col in range(self.cols):
                 if self._grid[row][col].letter == None and not self.visited[row][col]:
                     return False
         return True
     
-    def get_first_space(self):
+    def get_first_space(self) -> Tuple[int, int]:
+        """
+        Finds the location of the first empty white cell in the grid when iterating from the first cell of the first row to the last cell of the last row.
+
+        Returns:
+            Tuple[int, int]: The coordinates of the cell in the form (column number, row number).
+        """
         for row in range(self.rows):
             for col in range(self.cols):   
                 if self._grid[row][col].letter == None:
                     return (col, row)
 
-    def check_line_connections(self, coords):
-        directions = ((-1, 0), (1, 0), (0, -1), (0, 1))
-        current_x = coords[0]
-        current_y = coords[1]
+    def check_line_connections(self, coords: Tuple[int, int]) -> None:
+        """
+        Recursively searches surrounding cells to see if they are empty white cells, and marks them as visited.
+        
+        Args:
+            coords (Tuple[int, int]): The coordinates of a blank white space to begin searching from.
+        """
+        directions: Tuple[Tuple[int, int], ...] = ((-1, 0), (1, 0), (0, -1), (0, 1))
+        current_x: int = coords[0]
+        current_y: int = coords[1]
         self.visited[current_y][current_x] = True
         for x, y in directions:
-            next_coord = (current_x + x, current_y + y)
+            next_coord: Tuple[int, int] = (current_x + x, current_y + y)
             next_x, next_y = next_coord
             if 0 <= next_x < self.cols and 0 <= next_y < self.rows and self.visited[next_y][next_x] == False and self._grid[next_y][next_x].letter == None:
                 self.check_line_connections(next_coord)
-
 
     def remove_extra_cells(self):
         """
