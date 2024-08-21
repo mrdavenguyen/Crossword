@@ -291,57 +291,57 @@ class Grid:
                 if self._grid[row][col].num_across is None and self._grid[row][col].num_down is None:
                     self._grid[row][col].letter = "#"
 
-    def assign_numbering(self):
+    def assign_numbering(self) -> None:
         """
         Assigns an incrementing number to cells that begin across and down words.
         """
-        number = 1
+        number: int = 1
         for row in range(self.rows):
             for col in range(self.cols):
-                number_assigned = False
+                number_assigned: bool = False
                 if self.grid[row][col].letter == None:
-                    number_assigned = self.assign_across_numbering(row, col, number, number_assigned)
-                    number_assigned = self.assign_down_numbering(row, col, number, number_assigned)
+                    number_assigned: bool = self.assign_number_to_across_words(row, col, number, number_assigned)
+                    number_assigned: bool = self.assign_number_to_down_words(row, col, number, number_assigned)
                     if number_assigned:
                         number += 1
 
-    def assign_across_numbering(self, row, col, number, number_assigned):
+    def assign_number_to_across_words(self, row: int, col: int, number: int, number_assigned: bool) -> bool:
         """
         Assigns a number to a cell at the start of an across word.
         """
         if (col == 0 or self._grid[row][col - 1].letter == "#") and col != self.cols - 1:
-            word_length = self.count_cells_in_word(row, col, "across")
+            word_length: int = self.get_cell_count_of_word(row, col, "across")
             if word_length >= 3:
                 self._grid[row][col].numbering = number
-                number_assigned = True
-                self.assign_membership_to_word(word_length, row, col, number, "across")
+                number_assigned: bool = True
+                self.assign_cells_to_word_number(word_length, row, col, number, "across")
                 self.add_word_object_to_dictionary("across", number, row, col, word_length)
         return number_assigned
     
-    def assign_down_numbering(self, row, col, number, number_assigned):
+    def assign_number_to_down_words(self, row: int, col: int, number: int, number_assigned: bool) -> bool:
         """
         Assigns a number to a cell at the start of a down word.
         """
         if (row == 0 or self._grid[row - 1][col].letter == "#") and row != self.rows - 1:
-            word_length = self.count_cells_in_word(row, col, "down")
+            word_length: int = self.get_cell_count_of_word(row, col, "down")
             if word_length >= 3:
                 self._grid[row][col].numbering = number
-                number_assigned = True
-                self.assign_membership_to_word(word_length, row, col, number, "down")
+                number_assigned: bool = True
+                self.assign_cells_to_word_number(word_length, row, col, number, "down")
                 self.add_word_object_to_dictionary("down", number, row, col, word_length)
         return number_assigned
     
-    def add_word_object_to_dictionary(self, direction, number, row, col, word_length):
+    def add_word_object_to_dictionary(self, direction: str, number: int, row: int, col: int, word_length: int) -> None:
         """
         Adds and instantiates a Word object to the self.words dictionary.
         """
         self.words[direction][number] = Word(number, direction, (row, col), word_length)
     
-    def count_cells_in_word(self, row, col, direction):
+    def get_cell_count_of_word(self, row: int, col: int, direction: str) -> int:
         """
         Counts the number of cells in this word starting from the current cell.
         """
-        count = 0
+        count: int = 0
         if direction == "across":
             while col + count < self.cols and self._grid[row][col + count].letter != "#":
                 count += 1
@@ -350,9 +350,9 @@ class Grid:
                 count += 1
         return count
 
-    def assign_membership_to_word(self, word_length, row, col, number, direction):
+    def assign_cells_to_word_number(self, word_length: int, row: int, col: int, number: int, direction: str):
         """
-        Assigns each cell in a word to the given word number.
+        Assigns each cell in a line to the given word number of the given direction.
         """
         for i in range(word_length):
             if direction == "across":
@@ -360,15 +360,18 @@ class Grid:
             else:
                 self._grid[row + i][col].num_down = number
 
-    def populate_lines(self, orientation):
+    def populate_lines(self, orientation: str) -> None:
         """
         Checks for usable space in each first alternating line and divides each space up into smaller word spaces
         using black squares as dividers. On every second line, creates dividers in every second space.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
-        half_grid = len(self._grid) // 2 + 1
+        half_grid: int = len(self._grid) // 2 + 1
         for line in range(half_grid):
             if line % 2 == 0:
-                usable_spaces = self.find_usable_spaces(line, orientation)
+                usable_spaces: List[List[int]] = self.find_usable_spaces(line, orientation)
                 for usable_space in usable_spaces:
                     first_space, last_space = (usable_space[0], usable_space[1])
                     self.create_word_divisions(first_space, last_space, line, orientation)
@@ -387,36 +390,41 @@ class Grid:
             if i % 2 != 0:
                 self._grid[row][i].letter = '#'
     
-    def create_word_divisions(self, first_space, last_space, line, orientation):
+    def create_word_divisions(self, first_space: int, last_space: int, line: int, orientation: str) -> None:
         """
         Divides up a blank space in a line using black dividing squares according to the chosen
         length of words within that space, and does the same for the equivalent mirrored and axially
         inverted space on the grid.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
-        word_lengths = self.choose_word_lengths(first_space, last_space)
-        divisions = self.find_division_indexes(first_space, word_lengths)
+        word_lengths: List[int] = self.choose_word_lengths(first_space, last_space)
+        divisions: List[int] = self.find_division_indexes(first_space, word_lengths)
         self.draw_divisions(divisions, orientation, line)
 
-
-    def find_division_indexes(self, first_space, word_lengths):
+    def find_division_indexes(self, first_space: int, word_lengths: List[int]) -> List[int]:
         """
         Finds the indexes of all of the grid divisions in the given space based on the word lengths
         that the space is divided up into.
         """
-        divisions = []
+        divisions: List[int] = []
         # Add the word lengths + 1 to the index before the first space to get the indexes of the divisions
-        div_index = first_space - 1
+        div_index: int = first_space - 1
         for word_length in word_lengths[:-1]:
             div_index += word_length + 1
             divisions.append(div_index)
         return divisions
 
-    def draw_divisions(self, divisions, orientation, line):
+    def draw_divisions(self, divisions: List[int], orientation: str, line: int):
         """
         Draws black dividing squares ("#") into a given space according to a list of indexes, and does the same
         for the equivalent horizontally inverted mirrored space in the bottom half of the grid
         if the orientation is "rows". Otherwise does the same for the equivalent vertically
         inverted mirrored space in the right half of the grid if the orientation is "columns".
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
         for division in divisions:
             end_of_row, end_of_col = (len(self._grid[0]) - 1, len(self._grid) - 1)
