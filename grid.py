@@ -444,13 +444,16 @@ class Grid:
                 # Mirror inverted in the right columns
                 self._grid[end_of_col - division][end_of_row - line].letter = '#'
 
-    def choose_word_lengths(self, first_space, last_space):
+    def choose_word_lengths(self, first_space: int, last_space: int) -> List[int]:
         """
         Divides a given space up into a random number of spaces and returns the length of those spaces.
+
+        Returns:
+            List[int]: The lengths allocated to each word that comprises the current space, in the current line.
         """
-        remaining_space = last_space - first_space + 1
-        num_words = self.calculate_number_of_words(remaining_space)
-        word_lengths = []
+        remaining_space: int = last_space - first_space + 1
+        num_words: int = self.calculate_number_of_words(remaining_space)
+        word_lengths: List[int] = []
         # If more than one word, divide the space up into smaller words and black divisions
         if num_words > 1:
             self.create_random_word_lengths(remaining_space, num_words, word_lengths)
@@ -459,11 +462,11 @@ class Grid:
             word_lengths.append(remaining_space)
         return word_lengths
     
-    def calculate_number_of_words(self, space_length):
+    def calculate_number_of_words(self, space_length: int) -> int:
         """
         Calculates the maximum number of words that can fit in a space of specified length.
         """
-        max_words = ((space_length - 3) // 4) + 1
+        max_words: int = ((space_length - 3) // 4) + 1
         # Pick a random number of words to divide this space into
         if max_words == 4:
             return random.choices([1, 2], weights = [5, 100])[0]
@@ -472,21 +475,24 @@ class Grid:
         else:
             return 1
 
-    def create_random_word_lengths(self, remaining_space, num_words, word_lengths):
+    def create_random_word_lengths(self, remaining_space: int, num_words: int, word_lengths: List[int]) -> None:
         """
         Creates word spaces of random lengths with each having a minimum length of 3.
+
+        Args:
+            word_lengths (List[int]): The lengths allocated to each word that comprises the current space, in the current line.
         """
         for i in range(num_words):
             # Using the remaining space, create word spaces of random valid sizes
             if i == num_words - 1:
-                word_length = remaining_space
+                word_length: int = remaining_space
             else:
-                remaining_words = num_words - (i + 1)
-                shortest_word = 3
-                longest_word = remaining_space - (remaining_words * (3 + 1))
-                word_len_range = list(range(shortest_word, longest_word + 1))
-                word_len_weights = [5 if word_len == 3 or (remaining_space - word_len == (3 + 1)) else 100 for word_len in word_len_range]
-                word_length = random.choices(word_len_range, weights = word_len_weights)[0]
+                remaining_words: int = num_words - (i + 1)
+                shortest_word: int = 3
+                longest_word: int = remaining_space - (remaining_words * (3 + 1))
+                word_len_range: List[int] = list(range(shortest_word, longest_word + 1))
+                word_len_weights: List[int] = [5 if word_len == 3 or (remaining_space - word_len == (3 + 1)) else 100 for word_len in word_len_range]
+                word_length: int = random.choices(word_len_range, weights = word_len_weights)[0]
                 # Deduct word length and a single space from remaining space
                 remaining_space -= word_length + 1
             word_lengths.append(word_length)
