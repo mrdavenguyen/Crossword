@@ -407,36 +407,41 @@ class Grid:
             if i % 2 != 0:
                 self._grid[row][i].letter = '#'
     
-    def create_word_divisions(self, first_space, last_space, line, orientation):
+    def create_word_divisions(self, first_space: int, last_space: int, line: int, orientation: str) -> None:
         """
         Divides up a blank space in a line using black dividing squares according to the chosen
         length of words within that space, and does the same for the equivalent mirrored and axially
         inverted space on the grid.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
-        word_lengths = self.choose_word_lengths(first_space, last_space)
-        divisions = self.find_division_indexes(first_space, word_lengths)
+        word_lengths: List[int] = self.choose_word_lengths(first_space, last_space)
+        divisions: List[int] = self.find_division_indexes(first_space, word_lengths)
         self.draw_divisions(divisions, orientation, line)
 
-
-    def find_division_indexes(self, first_space, word_lengths):
+    def find_division_indexes(self, first_space: int, word_lengths: List[int]) -> List[int]:
         """
         Finds the indexes of all of the grid divisions in the given space based on the word lengths
         that the space is divided up into.
         """
-        divisions = []
+        divisions: List[int] = []
         # Add the word lengths + 1 to the index before the first space to get the indexes of the divisions
-        div_index = first_space - 1
+        div_index: int = first_space - 1
         for word_length in word_lengths[:-1]:
             div_index += word_length + 1
             divisions.append(div_index)
         return divisions
 
-    def draw_divisions(self, divisions, orientation, line):
+    def draw_divisions(self, divisions: List[int], orientation: str, line: int):
         """
         Draws black dividing squares ("#") into a given space according to a list of indexes, and does the same
         for the equivalent horizontally inverted mirrored space in the bottom half of the grid
         if the orientation is "rows". Otherwise does the same for the equivalent vertically
         inverted mirrored space in the right half of the grid if the orientation is "columns".
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
         for division in divisions:
             end_of_row, end_of_col = (len(self._grid[0]) - 1, len(self._grid) - 1)
