@@ -291,57 +291,57 @@ class Grid:
                 if self._grid[row][col].num_across is None and self._grid[row][col].num_down is None:
                     self._grid[row][col].letter = "#"
 
-    def assign_numbering(self):
+    def assign_numbering(self) -> None:
         """
         Assigns an incrementing number to cells that begin across and down words.
         """
-        number = 1
+        number: int = 1
         for row in range(self.rows):
             for col in range(self.cols):
-                number_assigned = False
+                number_assigned: bool = False
                 if self.grid[row][col].letter == None:
-                    number_assigned = self.assign_across_numbering(row, col, number, number_assigned)
-                    number_assigned = self.assign_down_numbering(row, col, number, number_assigned)
+                    number_assigned: bool = self.assign_number_to_across_words(row, col, number, number_assigned)
+                    number_assigned: bool = self.assign_number_to_down_words(row, col, number, number_assigned)
                     if number_assigned:
                         number += 1
 
-    def assign_across_numbering(self, row, col, number, number_assigned):
+    def assign_number_to_across_words(self, row: int, col: int, number: int, number_assigned: bool) -> bool:
         """
         Assigns a number to a cell at the start of an across word.
         """
         if (col == 0 or self._grid[row][col - 1].letter == "#") and col != self.cols - 1:
-            word_length = self.count_cells_in_word(row, col, "across")
+            word_length: int = self.get_cell_count_of_word(row, col, "across")
             if word_length >= 3:
                 self._grid[row][col].numbering = number
-                number_assigned = True
-                self.assign_membership_to_word(word_length, row, col, number, "across")
+                number_assigned: bool = True
+                self.assign_cells_to_word_number(word_length, row, col, number, "across")
                 self.add_word_object_to_dictionary("across", number, row, col, word_length)
         return number_assigned
     
-    def assign_down_numbering(self, row, col, number, number_assigned):
+    def assign_number_to_down_words(self, row: int, col: int, number: int, number_assigned: bool) -> bool:
         """
         Assigns a number to a cell at the start of a down word.
         """
         if (row == 0 or self._grid[row - 1][col].letter == "#") and row != self.rows - 1:
-            word_length = self.count_cells_in_word(row, col, "down")
+            word_length: int = self.get_cell_count_of_word(row, col, "down")
             if word_length >= 3:
                 self._grid[row][col].numbering = number
-                number_assigned = True
-                self.assign_membership_to_word(word_length, row, col, number, "down")
+                number_assigned: bool = True
+                self.assign_cells_to_word_number(word_length, row, col, number, "down")
                 self.add_word_object_to_dictionary("down", number, row, col, word_length)
         return number_assigned
     
-    def add_word_object_to_dictionary(self, direction, number, row, col, word_length):
+    def add_word_object_to_dictionary(self, direction: str, number: int, row: int, col: int, word_length: int) -> None:
         """
         Adds and instantiates a Word object to the self.words dictionary.
         """
         self.words[direction][number] = Word(number, direction, (row, col), word_length)
     
-    def count_cells_in_word(self, row, col, direction):
+    def get_cell_count_of_word(self, row: int, col: int, direction: str) -> int:
         """
         Counts the number of cells in this word starting from the current cell.
         """
-        count = 0
+        count: int = 0
         if direction == "across":
             while col + count < self.cols and self._grid[row][col + count].letter != "#":
                 count += 1
@@ -350,9 +350,9 @@ class Grid:
                 count += 1
         return count
 
-    def assign_membership_to_word(self, word_length, row, col, number, direction):
+    def assign_cells_to_word_number(self, word_length: int, row: int, col: int, number: int, direction: str):
         """
-        Assigns each cell in a word to the given word number.
+        Assigns each cell in a line to the given word number of the given direction.
         """
         for i in range(word_length):
             if direction == "across":
@@ -360,15 +360,18 @@ class Grid:
             else:
                 self._grid[row + i][col].num_down = number
 
-    def populate_lines(self, orientation):
+    def populate_lines(self, orientation: str) -> None:
         """
         Checks for usable space in each first alternating line and divides each space up into smaller word spaces
         using black squares as dividers. On every second line, creates dividers in every second space.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
-        half_grid = len(self._grid) // 2 + 1
+        half_grid: int = len(self._grid) // 2 + 1
         for line in range(half_grid):
             if line % 2 == 0:
-                usable_spaces = self.find_usable_spaces(line, orientation)
+                usable_spaces: List[List[int]] = self.find_usable_spaces(line, orientation)
                 for usable_space in usable_spaces:
                     first_space, last_space = (usable_space[0], usable_space[1])
                     self.create_word_divisions(first_space, last_space, line, orientation)
@@ -387,36 +390,48 @@ class Grid:
             if i % 2 != 0:
                 self._grid[row][i].letter = '#'
     
-    def create_word_divisions(self, first_space, last_space, line, orientation):
+    def create_word_divisions(self, first_space: int, last_space: int, line: int, orientation: str) -> None:
         """
         Divides up a blank space in a line using black dividing squares according to the chosen
         length of words within that space, and does the same for the equivalent mirrored and axially
         inverted space on the grid.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
-        word_lengths = self.choose_word_lengths(first_space, last_space)
-        divisions = self.find_division_indexes(first_space, word_lengths)
+        word_lengths: List[int] = self.choose_word_lengths(first_space, last_space)
+        divisions: List[int] = self.find_division_indexes(first_space, word_lengths)
         self.draw_divisions(divisions, orientation, line)
 
-
-    def find_division_indexes(self, first_space, word_lengths):
+    def find_division_indexes(self, first_space: int, word_lengths: List[int]) -> List[int]:
         """
         Finds the indexes of all of the grid divisions in the given space based on the word lengths
         that the space is divided up into.
+
+        Args:
+            word_lengths (List[int]): The lengths allocated to each word that comprises the current space, in the current line.
+
+        Returns:
+            List[int]: The indexes of the black dividing squares.
         """
-        divisions = []
+        divisions: List[int] = []
         # Add the word lengths + 1 to the index before the first space to get the indexes of the divisions
-        div_index = first_space - 1
+        div_index: int = first_space - 1
         for word_length in word_lengths[:-1]:
             div_index += word_length + 1
             divisions.append(div_index)
         return divisions
 
-    def draw_divisions(self, divisions, orientation, line):
+    def draw_divisions(self, divisions: List[int], orientation: str, line: int):
         """
         Draws black dividing squares ("#") into a given space according to a list of indexes, and does the same
         for the equivalent horizontally inverted mirrored space in the bottom half of the grid
         if the orientation is "rows". Otherwise does the same for the equivalent vertically
         inverted mirrored space in the right half of the grid if the orientation is "columns".
+
+        Args:
+            divisions (List[int]): The indexes of the black dividing squares.
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
         for division in divisions:
             end_of_row, end_of_col = (len(self._grid[0]) - 1, len(self._grid) - 1)
@@ -476,70 +491,91 @@ class Grid:
                 remaining_space -= word_length + 1
             word_lengths.append(word_length)
     
-    def find_usable_spaces(self, line, orientation, space=False, first_space=0, last_space=0):
+    def find_usable_spaces(self, line: int, orientation: str, is_space: bool = False, first_space: int = 0, last_space: int = 0) -> List[List[int]]:
         """
-        Finds all usable spaces in a line and returns a list with the first and last index of each space. 
+        Finds all usable spaces in a line and returns a list with the first and last index of each space.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+
+        Returns:
+            List[List[int]]: A list of lists containing the indexes of the first and last cells in each space, with each inner list
+                                representing each space.
         """
-        usable_spaces = []
+        usable_spaces: List[List[int]] = []
         for pos in range(self.rows):
-            if not space:
-                space, first_space = self.find_first_space(pos, space, first_space, line, orientation)
+            if not is_space:
+                is_space, first_space = self.find_first_space(pos, is_space, first_space, line, orientation)
             else:
                 if orientation == "rows":
-                    space = self.find_last_space_rows(pos, space, first_space, last_space, line, usable_spaces)
+                    is_space = self.find_last_space_rows(pos, is_space, first_space, last_space, line, usable_spaces)
                 else:
-                    space = self.find_last_space_cols(pos, space, first_space, last_space, line, usable_spaces)
+                    is_space = self.find_last_space_cols(pos, is_space, first_space, last_space, line, usable_spaces)
         return usable_spaces
     
-    def find_first_space(self, pos, space, first_space, line, orientation):
+    def find_first_space(self, pos: int, is_space: bool, first_space: int, line: int, orientation: str) -> Tuple[bool, int]:
         """
         Finds the next cell that begins a space within the current line. Returns the index of this space and sets the boolean
         "space" to True, signalling that the space has been started.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+
+        Returns:
+            Tuple[bool, int]: A boolean that flags whether what is being iterated through is a space, and the index of the first space.
         """
         if orientation == "rows":
             if self._grid[line][pos].letter == None:
-                space = True
-                first_space = pos
+                is_space: bool = True
+                first_space: int = pos
         else:
             if self._grid[pos][line].letter == None:
-                space = True
-                first_space = pos
-        return space, first_space
+                is_space: bool = True
+                first_space: int = pos
+        return is_space, first_space
     
-    def find_last_space_rows(self, pos, space, first_space, last_space, line, usable_spaces):
+    def find_last_space_rows(self, pos: int, is_space: bool, first_space: int, last_space: int, line: int, usable_spaces: List[List[int]]) -> bool:
         """
         Finds the last cell in the current space, whether due to the next cell being a black square or because the end of the row has been reached.
         Appends the first and last spaces to a list and sets the boolean "space" to False, signalling that the space has ended.
+
+        Args:
+            usable_spaces (List[List[int]]): A list of lists containing the indexes of the first and last cells in each space, with each inner list
+                                representing each space.
         """
         # Black square
         if self._grid[line][pos].letter != None:
-            space = False
-            last_space = pos - 1
+            is_space: bool = False
+            last_space: int = pos - 1
             if last_space - first_space >= 3:
                 usable_spaces.append((first_space, last_space))
         else:
             # Last space in the row, with preceeding spaces
             if pos == self.rows - 1:
-                last_space = pos
+                last_space: int = pos
                 if last_space - first_space >= 3:
                     usable_spaces.append((first_space, last_space))
-        return space
+        return is_space
     
-    def find_last_space_cols(self, pos, space, first_space, last_space, line, usable_spaces):
+    def find_last_space_cols(self, pos: int, is_space: bool, first_space: int, last_space: int, line: int, usable_spaces: List[List[int]]) -> bool:
         """
         Finds the last cell in the current space, whether due to the next cell being a black square or because the end of the column has been reached.
         Appends the first and last spaces to a list and sets the boolean "space" to False, signalling that the space has ended.
+
+        Args:
+            usable_spaces (List[List[int]]): A list of lists containing the indexes of the first and last cells in each space, with each inner list
+                                representing each space.
         """
         # Black square
         if self._grid[pos][line].letter != None:
-            space = False
-            last_space = pos - 1
+            is_space: bool = False
+            last_space: int = pos - 1
             if last_space - first_space >= 3:
                 usable_spaces.append((first_space, last_space))
         else:
             # Last space in the column, with preceeding spaces
             if pos == self.cols - 1:
-                last_space = pos
+                last_space: int = pos
                 if last_space - first_space >= 3:
                     usable_spaces.append((first_space, last_space))
-        return space
+        return is_space
