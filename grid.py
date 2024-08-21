@@ -360,18 +360,21 @@ class Grid:
             else:
                 self._grid[row + i][col].num_down = number
 
-    def populate_lines(self, orientation):
+    def populate_lines(self, orientation: str) -> None:
         """
         Checks for usable space in each first alternating line and divides each space up into smaller word spaces
         using black squares as dividers. On every second line, creates dividers in every second space.
+
+        Args:
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
         """
-        half_grid = len(self._grid) // 2 + 1
+        half_grid: int = len(self._grid) // 2 + 1
         for line in range(half_grid):
             if line % 2 == 0:
                 if orientation == "rows":
-                    usable_spaces = self.get_usable_spaces(line)
+                    usable_spaces: List[List[int]] = self.get_usable_spaces(line)
                 else:
-                    usable_spaces = self.get_usable_spaces_cols(line)
+                    usable_spaces: List[List[int]] = self.get_usable_spaces_cols(line)
                 for usable_space in usable_spaces:
                     first_space, last_space = (usable_space[0], usable_space[1])
                     self.create_word_divisions(first_space, last_space, line, orientation)
