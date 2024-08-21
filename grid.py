@@ -1,4 +1,5 @@
 import random
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -6,21 +7,20 @@ from cell import Cell
 from word import Word
 from word_list import WordList
 
-
 class Grid:
-    def __init__(self, grid_size = 15):
+    def __init__(self, grid_size: int = 15) -> None:
         """
         Initialises the grid with the given size.
         """
-        self.rows = grid_size
-        self.cols = grid_size
+        self.rows: int = grid_size
+        self.cols: int = grid_size
 
-        self.wordlists = self.load_word_lists()
+        self.wordlists: Dict[int, List[str]] = self.load_word_lists()
 
         while True:
             while True:
-                self._grid = [[Cell() for _ in range(self.cols)] for _ in range(self.rows)]
-                self.words = {
+                self._grid: List[List[Cell]] = [[Cell() for _ in range(self.cols)] for _ in range(self.rows)]
+                self.words: Dict[str, Dict[int, Word]] = {
                     "across": {},
                     "down": {}
                 }
@@ -30,7 +30,7 @@ class Grid:
                 if self.are_lines_connected():
                     self.display_grid()
                     break
-            iterable_keys = {
+            iterable_keys: Dict[str, List[int]] = {
                 "across": list(self.words["across"].keys()),
                 "down": list(self.words["down"].keys())
             }
@@ -38,7 +38,7 @@ class Grid:
                 break
 
     def load_word_lists(self):
-        word_list = WordList()
+        word_list: WordList = WordList()
         return word_list.create_word_lists()
 
 
@@ -56,10 +56,10 @@ class Grid:
         for y in range(self.rows):
             for x in range(self.cols):
                 if self._grid[y][x].letter != "#":
-                    value = self._grid[y][x].numbering
-                    letter = self._grid[y][x].letter
+                    value: int = self._grid[y][x].numbering
+                    letter: str = self._grid[y][x].letter
                     # f"{value:02d}" if value is not None else 
-                    formatted_value = f" {letter}" if letter is not None else "  "
+                    formatted_value: str = f" {letter}" if letter is not None else "  "
                     print(f"\033[31;107m{formatted_value}", end = "")
                     print("\033[0m", end = "")
                 else:
@@ -67,83 +67,143 @@ class Grid:
                     print("\033[0m", end = "")     
             print()
 
-    def populated_with_words(self, iterable_keys, alt_index = 0, across_index = 0, down_index = 0):
+    def populated_with_words(self, iterable_keys: Dict[str, List[int]], alt_index: int = 0, across_index: int = 0, down_index: int = 0) -> bool:
         """
-        REMEMBER TO POP USED WORDS IN A WAY THAT DOESN'T SCREW WITH THE ITERATION THROUGH WORDS.
-        MAYBE PASS A COPY OF WORDLIST TO THE RECURSIVE FUNCTION WITH THE CURRENT WORD REMOVED?
+        Attempts to recursively populate the crossword grid with words from the wordlist.
+        This method uses a backtracking algorithm to fill the crossword grid by alternating 
+        between 'across' and 'down' words. It selects words from the provided wordlists that 
+        fit into the current grid configuration, ensuring that all intersecting words are 
+        valid. If a word placement leads to a dead end (i.e., no valid subsequent placements), 
+        the method backtracks and tries alternative words. The function returns a boolean based
+        on whether population is successful.
+
+        Args:
+            iterable_keys (Dict[str, List[int]]): A dictionary containing lists of all of the across and down numbers
+                                                    which is used in order to iterate through these values in order.
+            alt_index: An incrementing index that is used to alternate directions between across (when alt_index is even)
+                                                    and down (when alt_index is odd). 
         """
-        # Stop populating with words if all across and down indexes have been iterated through
         if across_index == len(iterable_keys["across"]) and down_index == len(iterable_keys["down"]):
             return True
-        
-        if across_index < len(iterable_keys["across"]) and (down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0):
-            direction = "across"
-            word_num = iterable_keys["across"][across_index]
-            across_index += 1
-        else:
-            direction = "down"
-            word_num = iterable_keys["down"][down_index]
-            down_index += 1
-
-        word_length = self.words[direction][word_num].length
+        direction, word_num, across_index, down_index = self.alternate_index_directions(across_index, down_index, alt_index, iterable_keys)
+        word_length: int = self.words[direction][word_num].length
         start_y, start_x = self.words[direction][word_num].start_pos
-        current_word = []
-
-        for i in range(word_length):
-            if direction == "across":
-                current_word.append(self._grid[start_y][start_x + i].letter)
-            else:
-                current_word.append(self._grid[start_y + i][start_x].letter)
-
+        # Check direction to determine whether to read across (horizontally) or down (vertically).
+        current_word: List[Optional[str]] = [self._grid[start_y][start_x + i].letter if direction == "across" else self._grid[start_y + i][start_x].letter for i in range(word_length)]
         for word in self.wordlists[word_length]:
-            valid = True
-            for i in range(word_length):
-                if current_word[i] and word[i] != current_word[i]:
-                    valid = False
-            if valid:
-                for i in range(word_length):
-                    if direction == "across":
-                        self._grid[start_y][start_x + i].letter = word[i]
-                    else:
-                        self._grid[start_y + i][start_x].letter = word[i]
-                self.words[direction][word_num].word = word
-                self.words[direction][word_num].populated = True
-                # Go through each cell in the word, and if it's an intersection, and the intersecting word isn't already populated
-                # check whether a valid word can be made in the perpendicular line if it intersects with a letter in the current word.
-                for i in range(word_length):
-                    if direction == "across":
-                        if down_num := self._grid[start_y][start_x + i].num_down:
-                            if not self.words["down"][down_num].populated:
-                                if not self.can_be_perpendicular("down", down_num):
-                                    valid = False
-                    else:
-                        if across_num := self._grid[start_y + i][start_x].num_across:
-                            if not self.words["across"][across_num].populated:
-                                if not self.can_be_perpendicular("across", across_num):
-                                    valid = False
-                if valid:
+            if self.can_place_word(word_length, current_word, word):
+                self.place_word(word_length, direction, start_y, start_x, word, word_num)
+                if self.all_perpendicular_words_valid(word_length, direction, start_y, start_x):
                     print()
                     self.display_grid()
                     if self.populated_with_words(iterable_keys, alt_index + 1, across_index, down_index):
                         return True
-
-                # Backtrack and erase the word
-                self.words[direction][word_num].word = None
-                self.words[direction][word_num].populated = False
-                for i in range(word_length):
-                    if direction == "across":
-                        if down_num := self._grid[start_y][start_x + i].num_down:
-                            if not self.words["down"][down_num].populated:
-                                self._grid[start_y][start_x + i].letter = None
-                        else:
-                            self._grid[start_y][start_x + i].letter = None
-                    else:
-                        if across_num := self._grid[start_y + i][start_x].num_across:
-                            if not self.words["across"][across_num].populated:
-                                self._grid[start_y + i][start_x].letter = None
-                        else:
-                            self._grid[start_y + i][start_x].letter = None
+                self.erase_word(direction, word_num, word_length, start_y, start_x)
         return False
+    
+    def alternate_index_directions(self, across_index: int, down_index: int, alt_index: int, iterable_keys: Dict[str, List[int]]) -> Tuple[str, int, int, int]:
+        """
+        Determines the direction of the next word to be placed and updates the corresponding indices.
+        This method alternates between "across" and "down" directions for placing words in a crossword grid. 
+        It checks the current indices and the alternation index to decide whether to place the next word 
+        in the 'across' or 'down' direction. The method then increments the appropriate index and returns 
+        the selected direction, word number, and updated indices.
+
+        Args:
+            iterable_keys (Dict[str, List[int]]): A dictionary containing lists of all of the across and down numbers
+                                                    which is used in order to iterate through these values in order.
+        Returns:
+            Tuple[str, int, int, int]: A tuple containing the direction ("across" or "down"), word number, and current 
+                                                    across and down indexes.
+        """
+        if across_index < len(iterable_keys["across"]) and (down_index >= len(iterable_keys["down"]) or alt_index % 2 == 0):
+            direction: str = "across"
+            word_num: int = iterable_keys["across"][across_index]
+            across_index += 1
+        else:
+            direction: str = "down"
+            word_num: int = iterable_keys["down"][down_index]
+            down_index += 1
+        return direction, word_num, across_index, down_index
+    
+    def erase_word(self, direction: str, word_num: int, word_length: int, start_y: int, start_x: int) -> None:
+        """
+        Erases the current word while ensuring that any letters on the intersection of populated
+        words are retained.
+
+        Args:
+            direction (str): The direction of the word ("across" or "down").
+        """
+        self.words[direction][word_num].word = None
+        self.words[direction][word_num].populated = False
+        for i in range(word_length):
+            if direction == "across":
+                if down_num := self._grid[start_y][start_x + i].num_down:
+                    if not self.words["down"][down_num].populated:
+                        self._grid[start_y][start_x + i].letter = None
+                else:
+                    self._grid[start_y][start_x + i].letter = None
+            else:
+                if across_num := self._grid[start_y + i][start_x].num_across:
+                    if not self.words["across"][across_num].populated:
+                        self._grid[start_y + i][start_x].letter = None
+                else:
+                    self._grid[start_y + i][start_x].letter = None
+    
+    def can_place_word(self, word_length: int, current_word: List[Optional[str]], word: str) -> bool:
+        """
+        Checks whether a word can be placed in the current line, given the existing letters in the line.
+
+        Args:
+            current_word (List[Optional[str]): A list of the current letters in the line. Blank letters are 
+                                                represented by None.
+        """
+        for i in range(word_length):
+            if current_word[i] and word[i] != current_word[i]:
+                return False
+        return True
+    
+    def place_word(self, word_length: int, direction: str, start_y: int, start_x: int, word: str, word_num: int) -> None:
+        """
+        Places the chosen a word in a line determined by the starting x and y coordinates and the direction of the line (across or down).
+        This function additionally updates the associated Word object with the "word" string, and sets the boolean "populated"
+        to True to indicate that the word is currently filled.
+
+        Args:
+            direction (str): The direction of the word ("across" or "down").
+        """
+        for i in range(word_length):
+            if direction == "across":
+                self._grid[start_y][start_x + i].letter = word[i]
+            else:
+                self._grid[start_y + i][start_x].letter = word[i]
+        self.words[direction][word_num].word = word
+        self.words[direction][word_num].populated = True
+
+    def all_perpendicular_words_valid(self, word_length: int, direction: str, start_y: int, start_x: int) -> bool:
+        """
+        Checks whether all perpendicular words intersecting the current word are valid.
+        This function iterates through each cell of a word in the specified direction (across or down) 
+        and verifies that any intersecting words in the perpendicular direction are either already 
+        populated or can be populated with a valid word. If any of the intersecting words cannot be 
+        validly populated, the function returns False.
+
+        Args:
+            direction (str): The direction of the word ("across" or "down").
+        """
+        for i in range(word_length):
+            if direction == "across":
+                if down_num := self._grid[start_y][start_x + i].num_down:
+                    if not self.words["down"][down_num].populated:
+                        if not self.can_be_perpendicular("down", down_num):
+                            return False
+            else:
+                if across_num := self._grid[start_y + i][start_x].num_across:
+                    if not self.words["across"][across_num].populated:
+                        if not self.can_be_perpendicular("across", across_num):
+                            return False
+        return True
+
     
     def can_be_perpendicular(self, direction: str, word_num: int) -> bool:
         """  
@@ -218,7 +278,7 @@ class Grid:
                 return True
         return False
     
-    def populate_grid(self):
+    def populate_grid(self) -> None:
         """
         Populates the grid with rotationally symmetrical black dividing boxes.
         """
@@ -282,7 +342,7 @@ class Grid:
             if 0 <= next_x < self.cols and 0 <= next_y < self.rows and self.visited[next_y][next_x] == False and self._grid[next_y][next_x].letter == None:
                 self.check_line_connections(next_coord)
 
-    def remove_extra_cells(self):
+    def remove_extra_cells(self) -> None:
         """
         Changes any cells that aren't in rows or columns into black squares.
         """
@@ -350,7 +410,7 @@ class Grid:
                 count += 1
         return count
 
-    def assign_cells_to_word_number(self, word_length: int, row: int, col: int, number: int, direction: str):
+    def assign_cells_to_word_number(self, word_length: int, row: int, col: int, number: int, direction: str) -> None:
         """
         Assigns each cell in a line to the given word number of the given direction.
         """
@@ -366,7 +426,7 @@ class Grid:
         using black squares as dividers. On every second line, creates dividers in every second space.
 
         Args:
-            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
         """
         half_grid: int = len(self._grid) // 2 + 1
         for line in range(half_grid):
@@ -382,7 +442,7 @@ class Grid:
                         # Mirror in the bottom rows
                         self.create_alternating_divisions(len(self._grid) - 1 - line)
 
-    def create_alternating_divisions(self, row):
+    def create_alternating_divisions(self, row: int) -> None:
         """
         Makes every second space in the row a black dividing square.
         """
@@ -397,7 +457,7 @@ class Grid:
         inverted space on the grid.
 
         Args:
-            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
         """
         word_lengths: List[int] = self.choose_word_lengths(first_space, last_space)
         divisions: List[int] = self.find_division_indexes(first_space, word_lengths)
@@ -422,7 +482,7 @@ class Grid:
             divisions.append(div_index)
         return divisions
 
-    def draw_divisions(self, divisions: List[int], orientation: str, line: int):
+    def draw_divisions(self, divisions: List[int], orientation: str, line: int) -> None:
         """
         Draws black dividing squares ("#") into a given space according to a list of indexes, and does the same
         for the equivalent horizontally inverted mirrored space in the bottom half of the grid
@@ -431,7 +491,7 @@ class Grid:
 
         Args:
             divisions (List[int]): The indexes of the black dividing squares.
-            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
         """
         for division in divisions:
             end_of_row, end_of_col = (len(self._grid[0]) - 1, len(self._grid) - 1)
@@ -502,7 +562,7 @@ class Grid:
         Finds all usable spaces in a line and returns a list with the first and last index of each space.
 
         Args:
-            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
 
         Returns:
             List[List[int]]: A list of lists containing the indexes of the first and last cells in each space, with each inner list
@@ -525,7 +585,7 @@ class Grid:
         "space" to True, signalling that the space has been started.
 
         Args:
-            orientation (str): The orientation of the lines being divided (expects "rows" or "columns")
+            orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
 
         Returns:
             Tuple[bool, int]: A boolean that flags whether what is being iterated through is a space, and the index of the first space.
