@@ -1,8 +1,5 @@
 import random
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from cell import Cell
 from word import Word
 from word_list import WordList
@@ -24,6 +21,8 @@ class Grid:
                     "across": {},
                     "down": {}
                 }
+                self.generate_black_square_pattern()
+                self.display_grid()
                 self.populate_grid()
                 self.assign_numbering()
                 self.remove_extra_cells()
@@ -40,7 +39,6 @@ class Grid:
     def load_word_lists(self):
         word_list: WordList = WordList()
         return word_list.create_word_lists()
-
 
     @property
     def grid(self):
@@ -376,6 +374,8 @@ class Grid:
                 number_assigned: bool = True
                 self.assign_cells_to_word_number(word_length, row, col, number, "across")
                 self.add_word_object_to_dictionary("across", number, row, col, word_length)
+                self.add_word_object_to_cell(word_length, row, col, number, "across")
+                self.add_cell_coordinates_to_word(word_length, row, col, number, "across")
         return number_assigned
     
     def assign_number_to_down_words(self, row: int, col: int, number: int, number_assigned: bool) -> bool:
@@ -389,7 +389,35 @@ class Grid:
                 number_assigned: bool = True
                 self.assign_cells_to_word_number(word_length, row, col, number, "down")
                 self.add_word_object_to_dictionary("down", number, row, col, word_length)
+                self.add_word_object_to_cell(word_length, row, col, number, "down")
+                self.add_cell_coordinates_to_word(word_length, row, col, number, "down")
         return number_assigned
+    
+    def add_word_object_to_cell(self, word_length: int, row: int, col: int, number: int, direction: str) -> None:
+        """
+        Assigns Word objects to the corresponding Cell class instance variables "word_across" and "word_down" for each cell
+        in the current word.
+
+        Args:
+            direction (str): The direction of the word, either 'across' or 'down'.
+        """
+        for i in range(word_length):
+            if direction == "across":
+                self._grid[row][col + i].word_across = self.words[direction][number]
+            else:
+                self._grid[row + i][col].word_down = self.words[direction][number]
+
+    def add_cell_coordinates_to_word(self, word_length: int, row: int, col: int, number: int, direction: str) -> None:
+        """
+        Assigns a list of the coordinates of each cell in the current word to the instance variable "cells" in the Word class.
+
+        Args:
+            direction (str): The direction of the word, either 'across' or 'down'.
+        """
+        if direction == "across":
+            self.words[direction][number].cells = [(row, col + i) for i in range(word_length)]
+        else:
+            self.words[direction][number].cells = [(row + i, col) for i in range(word_length)]
     
     def add_word_object_to_dictionary(self, direction: str, number: int, row: int, col: int, word_length: int) -> None:
         """
@@ -420,6 +448,23 @@ class Grid:
             else:
                 self._grid[row + i][col].num_down = number
 
+    def generate_black_square_pattern(self) -> None:
+        """
+        Generates a checkered grid pattern with a random offset allocated from four different choices.
+        """
+        offset_conditions: Dict[str, Callable[[int, int], bool]] = {
+            "normal": lambda row, col: row % 2 != 0 and col % 2 != 0,
+            "offset_x": lambda row, col: row % 2 != 0 and col % 2 == 0,
+            "offset_y": lambda row, col: row % 2 == 0 and col % 2 != 0,
+            "offset_x_and_y": lambda row, col: row % 2 == 0 and col % 2 == 0
+        }
+        pattern: str = random.choice(list(offset_conditions.keys()))
+        condition: Callable[[int, int], bool] = offset_conditions[pattern]
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if condition(row, col):
+                    self._grid[row][col].letter = "#"
+
     def populate_lines(self, orientation: str) -> None:
         """
         Checks for usable space in each first alternating line and divides each space up into smaller word spaces
@@ -428,27 +473,24 @@ class Grid:
         Args:
             orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
         """
-        half_grid: int = len(self._grid) // 2 + 1
-        for line in range(half_grid):
-            if line % 2 == 0:
-                usable_spaces: List[List[int]] = self.find_usable_spaces(line, orientation)
+        half_grid: int = len(self._grid) // 2
+        for line in range(half_grid + 1):
+            if line < half_grid:
+                usable_spaces: List[List[int]] = self.find_usable_spaces(line, orientation, half_grid)
                 for usable_space in usable_spaces:
                     first_space, last_space = (usable_space[0], usable_space[1])
                     self.create_word_divisions(first_space, last_space, line, orientation)
             else:
                 if orientation == "rows":
-                    self.create_alternating_divisions(line)
-                    if line != half_grid - 1:
-                        # Mirror in the bottom rows
-                        self.create_alternating_divisions(len(self._grid) - 1 - line)
-
-    def create_alternating_divisions(self, row: int) -> None:
+                    self.place_center_divider_randomly(half_grid)
+                
+    def place_center_divider_randomly(self, half_grid: int) -> None:
         """
-        Makes every second space in the row a black dividing square.
+        Places a single black dividing square in the middle of the grid (1/2 probability) in order to create a point of symmetry.
         """
-        for i in range(len(self._grid[row])):
-            if i % 2 != 0:
-                self._grid[row][i].letter = '#'
+        if not self._grid[half_grid][half_grid].letter:
+            if random.randint(1, 2) == 1:
+                self._grid[half_grid][half_grid].letter = "#"
     
     def create_word_divisions(self, first_space: int, last_space: int, line: int, orientation: str) -> None:
         """
@@ -557,7 +599,7 @@ class Grid:
                 remaining_space -= word_length + 1
             word_lengths.append(word_length)
     
-    def find_usable_spaces(self, line: int, orientation: str, is_space: bool = False, first_space: int = 0, last_space: int = 0) -> List[List[int]]:
+    def find_usable_spaces(self, line: int, orientation: str, half_grid: int, is_space: bool = False, first_space: int = 0, last_space: int = 0) -> List[List[int]]:
         """
         Finds all usable spaces in a line and returns a list with the first and last index of each space.
 
@@ -569,7 +611,11 @@ class Grid:
                                 representing each space.
         """
         usable_spaces: List[List[int]] = []
-        for pos in range(self.rows):
+        if line == half_grid:
+            line_length: int = half_grid - 1
+        else:
+            line_length: int = self.rows
+        for pos in range(line_length):
             if not is_space:
                 is_space, first_space = self.find_first_space(pos, is_space, first_space, line, orientation)
             else:
