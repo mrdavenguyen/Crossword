@@ -374,6 +374,7 @@ class Grid:
                 number_assigned: bool = True
                 self.assign_cells_to_word_number(word_length, row, col, number, "across")
                 self.add_word_object_to_dictionary("across", number, row, col, word_length)
+                self.add_word_object_to_cell(word_length, row, col, number, "across")
         return number_assigned
     
     def assign_number_to_down_words(self, row: int, col: int, number: int, number_assigned: bool) -> bool:
@@ -387,7 +388,22 @@ class Grid:
                 number_assigned: bool = True
                 self.assign_cells_to_word_number(word_length, row, col, number, "down")
                 self.add_word_object_to_dictionary("down", number, row, col, word_length)
+                self.add_word_object_to_cell(word_length, row, col, number, "down")
         return number_assigned
+    
+    def add_word_object_to_cell(self, word_length: int, row: int, col: int, number: int, direction: str) -> None:
+        """
+        Assigns Word objects to the corresponding Cell class instance variables "word_across" and "word_down" for each cell
+        in the current word.
+
+        Args:
+            direction (str): The direction of the word, either 'across' or 'down'.
+        """
+        for i in range(word_length):
+            if direction == "across":
+                self._grid[row][col + i].word_across = self.words[direction][number]
+            else:
+                self._grid[row + i][col].word_down = self.words[direction][number]
     
     def add_word_object_to_dictionary(self, direction: str, number: int, row: int, col: int, word_length: int) -> None:
         """

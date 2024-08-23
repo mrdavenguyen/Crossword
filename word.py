@@ -7,5 +7,5 @@ class Word:
         self.word = None
         self.populated = False # Boolean indicating if the word is populated
 
-def __repr__(self):
-    return self.word
+    def __repr__(self):
+        return self.word
