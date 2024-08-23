@@ -8,11 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added crossword grid
 - Inserted words into crossword grid
+- Added three new offset grid patterns (PR #31)
 
 ### Changed
-- Some improvement ...
-- Updated ...
-- Refactored ...
+- Updated word filling algorithm to check whether valid words can also be filled in the lines 
+intersecting with the current line in order to reduce the frequency of unnecessary backtracking
+- Refactored Grid class (PR #4 to #14)
 
 ### Fixed
 - Fixed a bug where ...
