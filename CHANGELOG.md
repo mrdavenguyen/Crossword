@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved .. (enhancements or optimizations that make a feature or functionality better, whether in terms of performance, usability, or security)
 
 ### Changed
-- Improved the reliability and speed of the word filling process, reducing overall loading time
+- Improved the reliability and speed of the word filling process, reducing overall loading time (No PR associated - Initial commit)
 
 ### Fixed
 - Fixed a bug where ...
