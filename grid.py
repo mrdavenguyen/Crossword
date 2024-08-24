@@ -569,7 +569,7 @@ class Grid:
                 remaining_space -= word_length + 1
             word_lengths.append(word_length)
     
-    def find_usable_spaces(self, line: int, orientation: str, half_grid: int, is_space: bool = False, first_space: int = 0, last_space: int = 0) -> List[List[int]]:
+    def find_usable_spaces(self, line: int, orientation: str, half_grid: int) -> List[List[int]]:
         """
         Finds all usable spaces in a line and returns a list with the first and last index of each space.
 
@@ -580,6 +580,9 @@ class Grid:
             List[List[int]]: A list of lists containing the indexes of the first and last cells in each space, with each inner list
                                 representing each space.
         """
+        is_space: bool = False
+        first_space: int = 0
+        last_space: int = 0
         usable_spaces: List[List[int]] = []
         if line == half_grid:
             line_length: int = half_grid - 1
