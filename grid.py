@@ -1,13 +1,17 @@
+from dataclasses import dataclass
 import random
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from cell import Cell
 from word import Word
 from word_list import WordList
 
 class Grid:
+    @dataclass
+    class UsableSpace:
+        is_space: bool
+        first_space: int
+        last_space: int
+
     def __init__(self, grid_size: int = 15) -> None:
         """
         Initialises the grid with the given size.
@@ -24,6 +28,8 @@ class Grid:
                     "across": {},
                     "down": {}
                 }
+                self.generate_black_square_pattern()
+                self.display_grid()
                 self.populate_grid()
                 self.assign_numbering()
                 self.remove_extra_cells()
@@ -40,7 +46,6 @@ class Grid:
     def load_word_lists(self):
         word_list: WordList = WordList()
         return word_list.create_word_lists()
-
 
     @property
     def grid(self):
@@ -420,6 +425,23 @@ class Grid:
             else:
                 self._grid[row + i][col].num_down = number
 
+    def generate_black_square_pattern(self) -> None:
+        """
+        Generates a checkered grid pattern with a random offset allocated from four different choices.
+        """
+        offset_conditions: Dict[str, Callable[[int, int], bool]] = {
+            "normal": lambda row, col: row % 2 != 0 and col % 2 != 0,
+            "offset_x": lambda row, col: row % 2 != 0 and col % 2 == 0,
+            "offset_y": lambda row, col: row % 2 == 0 and col % 2 != 0,
+            "offset_x_and_y": lambda row, col: row % 2 == 0 and col % 2 == 0
+        }
+        pattern: str = random.choice(list(offset_conditions.keys()))
+        condition: Callable[[int, int], bool] = offset_conditions[pattern]
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if condition(row, col):
+                    self._grid[row][col].letter = "#"
+
     def populate_lines(self, orientation: str) -> None:
         """
         Checks for usable space in each first alternating line and divides each space up into smaller word spaces
@@ -428,27 +450,24 @@ class Grid:
         Args:
             orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
         """
-        half_grid: int = len(self._grid) // 2 + 1
-        for line in range(half_grid):
-            if line % 2 == 0:
-                usable_spaces: List[List[int]] = self.find_usable_spaces(line, orientation)
+        half_grid: int = len(self._grid) // 2
+        for line in range(half_grid + 1):
+            if line < half_grid:
+                usable_spaces: List[List[int]] = self.find_usable_spaces(line, orientation, half_grid)
                 for usable_space in usable_spaces:
                     first_space, last_space = (usable_space[0], usable_space[1])
                     self.create_word_divisions(first_space, last_space, line, orientation)
             else:
                 if orientation == "rows":
-                    self.create_alternating_divisions(line)
-                    if line != half_grid - 1:
-                        # Mirror in the bottom rows
-                        self.create_alternating_divisions(len(self._grid) - 1 - line)
-
-    def create_alternating_divisions(self, row: int) -> None:
+                    self.conditionally_place_center_divider(half_grid)
+                
+    def conditionally_place_center_divider(self, half_grid: int) -> None:
         """
-        Makes every second space in the row a black dividing square.
+        Places a single black dividing square in the middle of the grid (1/2 probability) in order to create a point of symmetry.
         """
-        for i in range(len(self._grid[row])):
-            if i % 2 != 0:
-                self._grid[row][i].letter = '#'
+        if not self._grid[half_grid][half_grid].letter:
+            if random.randint(1, 2) == 1:
+                self._grid[half_grid][half_grid].letter = "#"
     
     def create_word_divisions(self, first_space: int, last_space: int, line: int, orientation: str) -> None:
         """
@@ -557,7 +576,7 @@ class Grid:
                 remaining_space -= word_length + 1
             word_lengths.append(word_length)
     
-    def find_usable_spaces(self, line: int, orientation: str, is_space: bool = False, first_space: int = 0, last_space: int = 0) -> List[List[int]]:
+    def find_usable_spaces(self, line: int, orientation: str, half_grid: int) -> List[List[int]]:
         """
         Finds all usable spaces in a line and returns a list with the first and last index of each space.
 
@@ -568,42 +587,42 @@ class Grid:
             List[List[int]]: A list of lists containing the indexes of the first and last cells in each space, with each inner list
                                 representing each space.
         """
+        self.usable_space = self.UsableSpace(False, 0, 0)
         usable_spaces: List[List[int]] = []
-        for pos in range(self.rows):
-            if not is_space:
-                is_space, first_space = self.find_first_space(pos, is_space, first_space, line, orientation)
+        if line == half_grid:
+            line_length: int = half_grid - 1
+        else:
+            line_length: int = self.rows
+        for pos in range(line_length):
+            if not self.usable_space.is_space:
+                self.find_first_space(pos, line, orientation)
             else:
                 if orientation == "rows":
-                    is_space = self.find_last_space_rows(pos, is_space, first_space, last_space, line, usable_spaces)
+                    self.find_last_space_row(pos, line, usable_spaces)
                 else:
-                    is_space = self.find_last_space_cols(pos, is_space, first_space, last_space, line, usable_spaces)
+                    self.find_last_space_col(pos, line, usable_spaces)
         return usable_spaces
     
-    def find_first_space(self, pos: int, is_space: bool, first_space: int, line: int, orientation: str) -> Tuple[bool, int]:
+    def find_first_space(self, pos: int, line: int, orientation: str) -> None:
         """
-        Finds the next cell that begins a space within the current line. Returns the index of this space and sets the boolean
-        "space" to True, signalling that the space has been started.
+        Finds the next cell that begins a space within the current line. Sets the boolean "is_space" to True, signalling that the space has been started.
 
         Args:
             orientation (str): The orientation of the lines being divided (expects "rows" or "columns").
-
-        Returns:
-            Tuple[bool, int]: A boolean that flags whether what is being iterated through is a space, and the index of the first space.
         """
         if orientation == "rows":
             if self._grid[line][pos].letter == None:
-                is_space: bool = True
-                first_space: int = pos
+                self.usable_space.is_space = True
+                self.usable_space.first_space = pos
         else:
             if self._grid[pos][line].letter == None:
-                is_space: bool = True
-                first_space: int = pos
-        return is_space, first_space
+                self.usable_space.is_space = True
+                self.usable_space.first_space = pos
     
-    def find_last_space_rows(self, pos: int, is_space: bool, first_space: int, last_space: int, line: int, usable_spaces: List[List[int]]) -> bool:
+    def find_last_space_row(self, pos: int, line: int, usable_spaces: List[List[int]]) -> None:
         """
         Finds the last cell in the current space, whether due to the next cell being a black square or because the end of the row has been reached.
-        Appends the first and last spaces to a list and sets the boolean "space" to False, signalling that the space has ended.
+        Appends the first and last spaces to a list and sets the boolean "is_space" to False, signalling that the space has ended.
 
         Args:
             usable_spaces (List[List[int]]): A list of lists containing the indexes of the first and last cells in each space, with each inner list
@@ -611,22 +630,21 @@ class Grid:
         """
         # Black square
         if self._grid[line][pos].letter != None:
-            is_space: bool = False
-            last_space: int = pos - 1
-            if last_space - first_space >= 3:
-                usable_spaces.append((first_space, last_space))
+            self.usable_space.is_space = False
+            self.usable_space.last_space = pos - 1
+            if self.usable_space.last_space - self.usable_space.first_space >= 3:
+                usable_spaces.append((self.usable_space.first_space, self.usable_space.last_space))
         else:
             # Last space in the row, with preceeding spaces
             if pos == self.rows - 1:
-                last_space: int = pos
-                if last_space - first_space >= 3:
-                    usable_spaces.append((first_space, last_space))
-        return is_space
+                self.usable_space.last_space = pos
+                if self.usable_space.last_space - self.usable_space.first_space >= 3:
+                    usable_spaces.append((self.usable_space.first_space, self.usable_space.last_space))
     
-    def find_last_space_cols(self, pos: int, is_space: bool, first_space: int, last_space: int, line: int, usable_spaces: List[List[int]]) -> bool:
+    def find_last_space_col(self, pos: int, line: int, usable_spaces: List[List[int]]) -> None:
         """
         Finds the last cell in the current space, whether due to the next cell being a black square or because the end of the column has been reached.
-        Appends the first and last spaces to a list and sets the boolean "space" to False, signalling that the space has ended.
+        Appends the first and last spaces to a list and sets the boolean "is_space" to False, signalling that the space has ended.
 
         Args:
             usable_spaces (List[List[int]]): A list of lists containing the indexes of the first and last cells in each space, with each inner list
@@ -634,14 +652,13 @@ class Grid:
         """
         # Black square
         if self._grid[pos][line].letter != None:
-            is_space: bool = False
-            last_space: int = pos - 1
-            if last_space - first_space >= 3:
-                usable_spaces.append((first_space, last_space))
+            self.usable_space.is_space = False
+            self.usable_space.last_space = pos - 1
+            if self.usable_space.last_space - self.usable_space.first_space >= 3:
+                usable_spaces.append((self.usable_space.first_space, self.usable_space.last_space))
         else:
             # Last space in the column, with preceeding spaces
             if pos == self.cols - 1:
-                last_space: int = pos
-                if last_space - first_space >= 3:
-                    usable_spaces.append((first_space, last_space))
-        return is_space
+                self.usable_space.last_space = pos
+                if self.usable_space.last_space - self.usable_space.first_space >= 3:
+                    usable_spaces.append((self.usable_space.first_space, self.usable_space.last_space))

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added crossword grid
 - Inserted words into crossword grid
+- Added three new offset grid patterns (PR #31)
 
 ### Sample Imperative Words
 - Added .. (a new feature,  a new functionality, or component. It tells the user that something new is available)
