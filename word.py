@@ -6,3 +6,6 @@ class Word:
         self.length = length # Length of the word
         self.word = None
         self.populated = False # Boolean indicating if the word is populated
+
+    def __repr__(self):
+        return self.word
